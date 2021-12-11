@@ -29,6 +29,11 @@ export class CanvasNode {
         break;
     }
 
+    if (this.child.hasAttribute("selected")) {
+      ctx.strokeStyle = "red";
+      ctx.strokeRect(x, y, width, height);
+    }
+
     ctx.restore();
 
     return painted;

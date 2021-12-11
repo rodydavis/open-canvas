@@ -1,5 +1,5 @@
 import { html, css, LitElement } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import { getNodes } from "./canvas-node";
 
 @customElement("canvas-layers")
@@ -13,17 +13,44 @@ export class CanvasLayers extends LitElement {
       border-right: var(--canvas-layers-border-right, 1px solid #000);
       overflow-y: auto;
     }
+    li {
+      cursor: pointer;
+    }
+    li[selected] {
+      background-color: var(--canvas-layers-selected-background-color, red);
+    }
   `;
 
   @property({ type: Array }) items: Element[] = [];
+  @state() selection: number[] = [];
 
   render() {
     const items = getNodes(this.items);
     return html`<section>
       <ul>
-        ${items.map((e) => html`<li>${e.child.tagName}</li>`)}
+        ${items.map(
+          (e, i) => html`<li
+            ?selected=${e.child.hasAttribute("selected")}
+            @click=${() => this.onSelectNodes([i])}
+          >
+            ${e.child.tagName}
+          </li>`
+        )}
       </ul>
     </section>`;
+  }
+
+  onSelectNodes(indices: number[]) {
+    this.selection = indices;
+    this.dispatchEvent(
+      new CustomEvent("selection-changed", {
+        detail: {
+          selection: this.selection,
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 }
 

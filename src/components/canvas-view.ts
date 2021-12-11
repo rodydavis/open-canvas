@@ -50,9 +50,8 @@ export class CanvasView extends LitElement {
       const { scale } = matrixInfo(this.context);
       const md = { x: e.movementX / scale, y: e.movementY / scale };
       const nodes = getNodes(this.items);
-      if (this.selection.length > 0) {
-        const nodeIdx = this.selection.reverse()[0];
-        const item = nodes[nodeIdx];
+      for (const idx of this.selection) {
+        const item = nodes[idx];
         // Move node
         const newX = item.rect.x + md.x;
         const newY = item.rect.y + md.y;
@@ -79,6 +78,18 @@ export class CanvasView extends LitElement {
         this.selection.push(i);
       }
     }
+    this.selection = this.selection.reverse();
+    this.selection = this.selection.slice(0, 1);
+
+    this.dispatchEvent(
+      new CustomEvent("selection-changed", {
+        detail: {
+          selection: this.selection,
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 
   onPointerUp(e: PointerEvent) {

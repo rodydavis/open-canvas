@@ -6,6 +6,8 @@ import "./canvas-layers";
 import "./canvas-view";
 import "./canvas-properties";
 import { CanvasView } from "./canvas-view";
+import { CanvasLayers } from "./canvas-layers";
+import { getNodes } from "./canvas-node";
 
 @customElement("canvas-app")
 export class CanvasApp extends LitElement {
@@ -51,13 +53,33 @@ export class CanvasApp extends LitElement {
 
   @query("main") main!: HTMLElement;
   @query("canvas-view") canvas!: CanvasView;
+  @query("canvas-layers") layers!: CanvasLayers;
   @state() items = Array.from(this.children);
+  @state() selection: number[] = [];
 
   render() {
     return html`<main>
-      <canvas-toolbar @add-node=${() => this.addNode()}></canvas-toolbar>
-      <canvas-layers .items=${this.items}></canvas-layers>
-      <canvas-view .items=${this.items}></canvas-view>
+      <canvas-toolbar
+        @add-node=${() => {
+          this.addNode();
+        }}
+      ></canvas-toolbar>
+      <canvas-layers
+        .items=${this.items}
+        .selection=${this.selection}
+        @selection-changed=${(e: CustomEvent) => {
+          const selection = e.detail.selection;
+          this.updateSelection(selection);
+        }}
+      ></canvas-layers>
+      <canvas-view
+        .items=${this.items}
+        .selection=${this.selection}
+        @selection-changed=${(e: CustomEvent) => {
+          const selection = e.detail.selection;
+          this.updateSelection(selection);
+        }}
+      ></canvas-view>
       <canvas-properties></canvas-properties>
     </main> `;
   }
@@ -80,7 +102,22 @@ export class CanvasApp extends LitElement {
     this.appendChild(node);
     this.items.push(node);
     this.canvas.paint();
-    this.requestUpdate();
+    this.layers.requestUpdate();
+    this.updateSelection([this.items.length - 1]);
+  }
+
+  updateSelection(indices: number[]) {
+    this.selection = indices;
+    const items = getNodes(this.items);
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (this.selection.includes(i)) {
+        item.child.setAttribute("selected", "");
+      } else {
+        item.child.removeAttribute("selected");
+      }
+    }
+    this.canvas.paint();
   }
 }
 
