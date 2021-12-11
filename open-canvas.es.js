@@ -1039,6 +1039,45 @@ function drawGridBackground(ctx, size, offset, scale) {
   }
   ctx.restore();
 }
+class UpdateNode extends BaseCommand {
+  constructor(node, index) {
+    super("update-node");
+    this.node = node;
+    this.index = index;
+  }
+  execute(app) {
+    const node = this.node;
+    const index = this.index;
+    app.items[index] = node;
+    app.canvas.paint();
+    app.layers.requestUpdate();
+  }
+}
+class ZoomCanvas extends BaseCommand {
+  constructor(delta) {
+    super("zoom-canvas");
+    this.delta = delta;
+  }
+  execute(app) {
+    const { scale, offset, rotation } = matrixInfo(app.canvas.context);
+    let localScale = scale;
+    localScale += this.delta;
+    app.canvas.context = createMatrix(offset, localScale, rotation);
+  }
+}
+class PanCanvas extends BaseCommand {
+  constructor(delta) {
+    super("pan-canvas");
+    this.delta = delta;
+  }
+  execute(app) {
+    const { offset, scale, rotation } = matrixInfo(app.canvas.context);
+    let localOffset = offset;
+    localOffset.x += this.delta.x / scale;
+    localOffset.y += this.delta.y / scale;
+    app.canvas.context = createMatrix(localOffset, scale, rotation);
+  }
+}
 var __defProp$2 = Object.defineProperty;
 var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
 var __decorateClass$2 = (decorators, target, key, kind) => {
@@ -1083,11 +1122,12 @@ let CanvasView = class extends s {
       const nodes = getNodes(this.items);
       for (const idx of this.selection) {
         const item = nodes[idx];
+        const realIdx = this.items.indexOf(item.child);
         const newX = item.rect.x + md.x;
         const newY = item.rect.y + md.y;
         item.child.setAttribute("x", newX.toString());
         item.child.setAttribute("y", newY.toString());
-        this.paint();
+        new UpdateNode(item.child, realIdx).dispatch(this);
       }
     }
   }
@@ -1120,32 +1160,13 @@ let CanvasView = class extends s {
     if (e2.ctrlKey) {
       const scaleDelta = -e2.deltaY * 0.01;
       if (scale + scaleDelta > this.minScale && scale + scaleDelta < this.maxScale) {
-        this.zoom(scaleDelta);
+        new ZoomCanvas(scaleDelta).dispatch(this);
       }
     } else {
       const offset = { x: -e2.deltaX * 2 * scale, y: -e2.deltaY * 2 * scale };
-      this.pan(offset);
+      new PanCanvas(offset).dispatch(this);
     }
     this.paint();
-  }
-  zoom(amount) {
-    const { scale, offset, rotation } = matrixInfo(this.context);
-    let localScale = scale;
-    localScale += amount;
-    this.context = createMatrix(offset, localScale, rotation);
-  }
-  pan(delta) {
-    const { offset, scale, rotation } = matrixInfo(this.context);
-    let localOffset = offset;
-    localOffset.x += delta.x / scale;
-    localOffset.y += delta.y / scale;
-    this.context = createMatrix(localOffset, scale, rotation);
-  }
-  rotate(amount) {
-    const { rotation, offset, scale } = matrixInfo(this.context);
-    let localRotation = rotation;
-    localRotation += amount;
-    this.context = createMatrix(offset, scale, localRotation);
   }
   paint() {
     const style = getComputedStyle(this);
@@ -1186,20 +1207,6 @@ __decorateClass$2([
 CanvasView = __decorateClass$2([
   n("canvas-view")
 ], CanvasView);
-class UpdateNode extends BaseCommand {
-  constructor(index, node) {
-    super("update-node");
-    this.index = index;
-    this.node = node;
-  }
-  execute(app) {
-    const node = this.node;
-    const index = this.index;
-    app.items[index] = node;
-    app.canvas.paint();
-    app.layers.requestUpdate();
-  }
-}
 var __defProp$1 = Object.defineProperty;
 var __getOwnPropDesc$1 = Object.getOwnPropertyDescriptor;
 var __decorateClass$1 = (decorators, target, key, kind) => {
@@ -1273,7 +1280,7 @@ let CanvasProperties = class extends s {
         @input=${(e2) => {
       const input = e2.target;
       element.setAttribute(key, input.value);
-      new UpdateNode(this.items.indexOf(element), element).dispatch(this);
+      new UpdateNode(element, this.items.indexOf(element)).dispatch(this);
     }}
       />
     </div> `;
