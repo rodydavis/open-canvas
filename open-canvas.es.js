@@ -1348,6 +1348,7 @@ let CanvasApp = class extends s {
     super(...arguments);
     this.items = Array.from(this.children);
     this.selection = [];
+    this.debug = false;
   }
   render() {
     return p`<main>
@@ -1371,6 +1372,8 @@ let CanvasApp = class extends s {
     this.addEventListener("command", (e2) => {
       const event = e2;
       const command = event.detail;
+      if (this.debug)
+        console.debug("command", command.name);
       command.execute(this);
     });
   }
@@ -1438,6 +1441,9 @@ __decorateClass([
 __decorateClass([
   t()
 ], CanvasApp.prototype, "selection", 2);
+__decorateClass([
+  e({ type: Boolean, attribute: "debug" })
+], CanvasApp.prototype, "debug", 2);
 CanvasApp = __decorateClass([
   n("canvas-app")
 ], CanvasApp);
