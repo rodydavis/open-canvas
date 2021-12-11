@@ -684,6 +684,28 @@ function i(i2, n2) {
     return t2;
   } });
 }
+function colorNameToHex(color) {
+  const d2 = document.createElement("div");
+  d2.style.color = color;
+  document.body.appendChild(d2);
+  const rgb = window.getComputedStyle(d2).color;
+  const [r2, g2, b2] = rgb.match(/\d+/g).map((v2) => parseInt(v2, 10));
+  const componentToHex = (c2) => {
+    const hex2 = c2.toString(16);
+    return hex2.length == 1 ? "0" + hex2 : hex2;
+  };
+  const hex = `#${componentToHex(r2)}${componentToHex(g2)}${componentToHex(b2)}`;
+  document.body.removeChild(d2);
+  return hex;
+}
+function randomColor() {
+  const letters = "0123456789ABCDEF";
+  let color = "#";
+  for (let i2 = 0; i2 < 6; i2++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
 function getSizeFromElement(elem) {
   const xAttr = elem.getAttribute("x");
   const yAttr = elem.getAttribute("y");
@@ -709,27 +731,88 @@ function getSizeFromElement(elem) {
 function pxToNumber(value) {
   return Number(value.replace("px", ""));
 }
-function colorNameToHex(color) {
-  const d2 = document.createElement("div");
-  d2.style.color = color;
-  document.body.appendChild(d2);
-  const rgb = window.getComputedStyle(d2).color;
-  const [r2, g2, b2] = rgb.match(/\d+/g).map((v2) => parseInt(v2, 10));
-  const componentToHex = (c2) => {
-    const hex2 = c2.toString(16);
-    return hex2.length == 1 ? "0" + hex2 : hex2;
-  };
-  const hex = `#${componentToHex(r2)}${componentToHex(g2)}${componentToHex(b2)}`;
-  document.body.removeChild(d2);
-  return hex;
-}
-function randomColor() {
-  const letters = "0123456789ABCDEF";
-  let color = "#";
-  for (let i2 = 0; i2 < 6; i2++) {
-    color += letters[Math.floor(Math.random() * 16)];
+function drawGridBackground(ctx, size, offset, scale) {
+  ctx.save();
+  const { width, height } = size;
+  const r2 = 2;
+  const gridSize = 25 * scale;
+  const gridOffsetDx = offset.x % gridSize;
+  const gridOffsetDy = offset.y % gridSize;
+  for (let x2 = gridOffsetDx; x2 < width; x2 += gridSize) {
+    for (let y = gridOffsetDy; y < height; y += gridSize) {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(x2 - r2 / 2, y - r2 / 2, r2, r2);
+    }
   }
-  return color;
+  ctx.restore();
+}
+const DEFAULT_MATRIX = [1, 0, 0, 1, 0, 0];
+const DEFAULT_INVERSE_MATRIX = [1, 0, 0, 1];
+const defaultMatrix = createMatrix({ x: 0, y: 0 }, 1, 0);
+function createMatrix(offset, scale, rotation) {
+  const m2 = [...DEFAULT_MATRIX];
+  const im = [...DEFAULT_INVERSE_MATRIX];
+  m2[3] = m2[0] = Math.cos(rotation) * scale;
+  m2[2] = -(m2[1] = Math.sin(rotation) * scale);
+  m2[4] = offset.x;
+  m2[5] = offset.y;
+  const cross = m2[0] * m2[3] - m2[1] * m2[2];
+  im[0] = m2[3] / cross;
+  im[1] = -m2[1] / cross;
+  im[2] = -m2[2] / cross;
+  im[3] = m2[0] / cross;
+  return {
+    matrix: m2,
+    inverseMatrix: im
+  };
+}
+function toWorld(context, offset) {
+  let xx, yy, m2;
+  m2 = context.inverseMatrix;
+  xx = offset.x - context.matrix[4];
+  yy = offset.y - context.matrix[5];
+  const localX = xx * m2[0] + yy * m2[2];
+  const localY = xx * m2[1] + yy * m2[3];
+  return {
+    x: localX,
+    y: localY
+  };
+}
+function matrixInfo(context) {
+  const rotation = rotationFromMatrix(context);
+  const { scale } = scaleFromMatrix(context);
+  const offset = offsetFromMatrix(context);
+  return {
+    rotation,
+    scale,
+    offset
+  };
+}
+function rotationFromMatrix(context) {
+  const matrix = context.matrix;
+  const rad = Math.atan2(matrix[1], matrix[0]);
+  return rad;
+}
+function scaleFromMatrix(context) {
+  const matrix = context.matrix;
+  const scaleX = Math.sqrt(matrix[0] * matrix[0] + matrix[1] * matrix[1]);
+  const scaleY = Math.sqrt(matrix[2] * matrix[2] + matrix[3] * matrix[3]);
+  return {
+    scaleX,
+    scaleY,
+    scale: Math.max(scaleX, scaleY)
+  };
+}
+function offsetFromMatrix(context) {
+  const matrix = context.matrix;
+  return {
+    x: matrix[4],
+    y: matrix[5]
+  };
+}
+function applyMatrix(ctx, context) {
+  const m2 = context.matrix;
+  ctx.setTransform(m2[0], m2[1], m2[2], m2[3], m2[4], m2[5]);
 }
 function paintRect(ctx, node) {
   const { x: x2, y, width, height } = node.rect;
@@ -836,6 +919,45 @@ class AddNode extends BaseCommand {
     app.canvas.paint();
     app.layers.requestUpdate();
     app.addCommand(new UpdateSelection([app.items.length - 1]));
+  }
+}
+class PanCanvas extends BaseCommand {
+  constructor(delta) {
+    super("pan-canvas");
+    this.delta = delta;
+  }
+  execute(app) {
+    const { offset, scale, rotation } = matrixInfo(app.canvas.context);
+    let localOffset = offset;
+    localOffset.x += this.delta.x / scale;
+    localOffset.y += this.delta.y / scale;
+    app.canvas.context = createMatrix(localOffset, scale, rotation);
+  }
+}
+class UpdateNode extends BaseCommand {
+  constructor(node, index) {
+    super("update-node");
+    this.node = node;
+    this.index = index;
+  }
+  execute(app) {
+    const node = this.node;
+    const index = this.index;
+    app.items[index] = node;
+    app.canvas.paint();
+    app.layers.requestUpdate();
+  }
+}
+class ZoomCanvas extends BaseCommand {
+  constructor(delta) {
+    super("zoom-canvas");
+    this.delta = delta;
+  }
+  execute(app) {
+    const { scale, offset, rotation } = matrixInfo(app.canvas.context);
+    let localScale = scale;
+    localScale += this.delta;
+    app.canvas.context = createMatrix(offset, localScale, rotation);
   }
 }
 var __defProp$4 = Object.defineProperty;
@@ -956,128 +1078,6 @@ __decorateClass$3([
 CanvasLayers = __decorateClass$3([
   n("canvas-layers")
 ], CanvasLayers);
-const DEFAULT_MATRIX = [1, 0, 0, 1, 0, 0];
-const DEFAULT_INVERSE_MATRIX = [1, 0, 0, 1];
-const defaultMatrix = createMatrix({ x: 0, y: 0 }, 1, 0);
-function createMatrix(offset, scale, rotation) {
-  const m2 = [...DEFAULT_MATRIX];
-  const im = [...DEFAULT_INVERSE_MATRIX];
-  m2[3] = m2[0] = Math.cos(rotation) * scale;
-  m2[2] = -(m2[1] = Math.sin(rotation) * scale);
-  m2[4] = offset.x;
-  m2[5] = offset.y;
-  const cross = m2[0] * m2[3] - m2[1] * m2[2];
-  im[0] = m2[3] / cross;
-  im[1] = -m2[1] / cross;
-  im[2] = -m2[2] / cross;
-  im[3] = m2[0] / cross;
-  return {
-    matrix: m2,
-    inverseMatrix: im
-  };
-}
-function toWorld(context, offset) {
-  let xx, yy, m2;
-  m2 = context.inverseMatrix;
-  xx = offset.x - context.matrix[4];
-  yy = offset.y - context.matrix[5];
-  const localX = xx * m2[0] + yy * m2[2];
-  const localY = xx * m2[1] + yy * m2[3];
-  return {
-    x: localX,
-    y: localY
-  };
-}
-function matrixInfo(context) {
-  const rotation = rotationFromMatrix(context);
-  const { scale } = scaleFromMatrix(context);
-  const offset = offsetFromMatrix(context);
-  return {
-    rotation,
-    scale,
-    offset
-  };
-}
-function rotationFromMatrix(context) {
-  const matrix = context.matrix;
-  const rad = Math.atan2(matrix[1], matrix[0]);
-  return rad;
-}
-function scaleFromMatrix(context) {
-  const matrix = context.matrix;
-  const scaleX = Math.sqrt(matrix[0] * matrix[0] + matrix[1] * matrix[1]);
-  const scaleY = Math.sqrt(matrix[2] * matrix[2] + matrix[3] * matrix[3]);
-  return {
-    scaleX,
-    scaleY,
-    scale: Math.max(scaleX, scaleY)
-  };
-}
-function offsetFromMatrix(context) {
-  const matrix = context.matrix;
-  return {
-    x: matrix[4],
-    y: matrix[5]
-  };
-}
-function applyMatrix(ctx, context) {
-  const m2 = context.matrix;
-  ctx.setTransform(m2[0], m2[1], m2[2], m2[3], m2[4], m2[5]);
-}
-function drawGridBackground(ctx, size, offset, scale) {
-  ctx.save();
-  const { width, height } = size;
-  const r2 = 2;
-  const gridSize = 25 * scale;
-  const gridOffsetDx = offset.x % gridSize;
-  const gridOffsetDy = offset.y % gridSize;
-  for (let x2 = gridOffsetDx; x2 < width; x2 += gridSize) {
-    for (let y = gridOffsetDy; y < height; y += gridSize) {
-      ctx.fillStyle = "#000";
-      ctx.fillRect(x2 - r2 / 2, y - r2 / 2, r2, r2);
-    }
-  }
-  ctx.restore();
-}
-class UpdateNode extends BaseCommand {
-  constructor(node, index) {
-    super("update-node");
-    this.node = node;
-    this.index = index;
-  }
-  execute(app) {
-    const node = this.node;
-    const index = this.index;
-    app.items[index] = node;
-    app.canvas.paint();
-    app.layers.requestUpdate();
-  }
-}
-class ZoomCanvas extends BaseCommand {
-  constructor(delta) {
-    super("zoom-canvas");
-    this.delta = delta;
-  }
-  execute(app) {
-    const { scale, offset, rotation } = matrixInfo(app.canvas.context);
-    let localScale = scale;
-    localScale += this.delta;
-    app.canvas.context = createMatrix(offset, localScale, rotation);
-  }
-}
-class PanCanvas extends BaseCommand {
-  constructor(delta) {
-    super("pan-canvas");
-    this.delta = delta;
-  }
-  execute(app) {
-    const { offset, scale, rotation } = matrixInfo(app.canvas.context);
-    let localOffset = offset;
-    localOffset.x += this.delta.x / scale;
-    localOffset.y += this.delta.y / scale;
-    app.canvas.context = createMatrix(localOffset, scale, rotation);
-  }
-}
 var __defProp$2 = Object.defineProperty;
 var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
 var __decorateClass$2 = (decorators, target, key, kind) => {
