@@ -1,6 +1,6 @@
 import { html, css, LitElement } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
-import { getNodes } from "./canvas-node";
+import { customElement, property } from "lit/decorators.js";
+import { getNodes } from "../nodes/base";
 
 @customElement("canvas-layers")
 export class CanvasLayers extends LitElement {
@@ -17,12 +17,12 @@ export class CanvasLayers extends LitElement {
       cursor: pointer;
     }
     li[selected] {
-      background-color: var(--canvas-layers-selected-background-color, red);
+      color: var(--canvas-layers-selected-background-color, red);
     }
   `;
 
   @property({ type: Array }) items: Element[] = [];
-  @state() selection: number[] = [];
+  @property({ type: Array }) selection: number[] = [];
 
   render() {
     const items = getNodes(this.items);

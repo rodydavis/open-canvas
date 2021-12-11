@@ -7,7 +7,9 @@ import "./canvas-view";
 import "./canvas-properties";
 import { CanvasView } from "./canvas-view";
 import { CanvasLayers } from "./canvas-layers";
-import { getNodes } from "./canvas-node";
+import { getNodes } from "../nodes/base";
+import { CanvasProperties } from "./canvas-properties";
+import { randomColor } from "../utils";
 
 @customElement("canvas-app")
 export class CanvasApp extends LitElement {
@@ -54,6 +56,7 @@ export class CanvasApp extends LitElement {
   @query("main") main!: HTMLElement;
   @query("canvas-view") canvas!: CanvasView;
   @query("canvas-layers") layers!: CanvasLayers;
+  @query("canvas-properties") properties!: CanvasProperties;
   @state() items = Array.from(this.children);
   @state() selection: number[] = [];
 
@@ -80,7 +83,17 @@ export class CanvasApp extends LitElement {
           this.updateSelection(selection);
         }}
       ></canvas-view>
-      <canvas-properties></canvas-properties>
+      <canvas-properties
+        .items=${this.items}
+        .selection=${this.selection}
+        @node-updated=${(e: CustomEvent) => {
+          const node = e.detail.node;
+          const index = e.detail.index;
+          this.items[index] = node;
+          this.canvas.paint();
+          this.layers.requestUpdate();
+        }}
+      ></canvas-properties>
     </main> `;
   }
 
@@ -98,7 +111,7 @@ export class CanvasApp extends LitElement {
     node.setAttribute("y", "0");
     node.setAttribute("width", "100");
     node.setAttribute("height", "100");
-    node.setAttribute("fill", "red");
+    node.setAttribute("fill", randomColor());
     this.appendChild(node);
     this.items.push(node);
     this.canvas.paint();

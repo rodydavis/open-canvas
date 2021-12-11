@@ -1,4 +1,5 @@
 import { getSizeFromElement, Rect } from "../utils";
+import { paintRect } from "./rect";
 
 export class CanvasNode {
   constructor(readonly child: Element) {}
@@ -11,23 +12,22 @@ export class CanvasNode {
     return getSizeFromElement(this.child);
   }
 
-  paint(ctx: CanvasRenderingContext2D): boolean {
-    const { x, y, width, height } = this.rect;
-    const fillColor = this.child.getAttribute("fill") || "blue";
-
-    ctx.save();
-
-    let painted = false;
-
+  paint(ctx: CanvasRenderingContext2D) {
     switch (this.tag) {
       case "rect":
-        ctx.fillStyle = fillColor;
-        ctx.fillRect(x, y, width, height);
-        painted = true;
+        paintRect(ctx, this);
         break;
       default:
         break;
     }
+
+    this.paintBackground(ctx);
+  }
+
+  paintBackground(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+
+    const { x, y, width, height } = this.rect;
 
     if (this.child.hasAttribute("selected")) {
       ctx.strokeStyle = "red";
@@ -35,8 +35,6 @@ export class CanvasNode {
     }
 
     ctx.restore();
-
-    return painted;
   }
 }
 

@@ -10,7 +10,7 @@ import {
 } from "../utils/matrix";
 import { Offset, pxToNumber } from "../utils";
 import { drawGridBackground } from "../utils/grid";
-import { getNodes } from "./canvas-node";
+import { getNodes } from "../nodes/base";
 
 @customElement("canvas-view")
 export class CanvasView extends LitElement {
@@ -19,9 +19,9 @@ export class CanvasView extends LitElement {
   @property({ type: Number, attribute: "min-scale" }) minScale = 0.2;
   @property({ type: Number, attribute: "max-scale" }) maxScale = 4;
   @property({ type: Array }) items: Element[] = [];
+  @property({ type: Array }) selection: number[] = [];
   @query("canvas") canvas!: HTMLCanvasElement;
   @state() context: MatrixContext = defaultMatrix;
-  @state() selection: number[] = [];
   pointers: Map<number, Offset> = new Map();
 
   render() {
