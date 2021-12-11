@@ -1,4 +1,4 @@
-import { getSizeFromElement, Rect } from "../utils";
+import { getSizeFromElement, randomColor, Rect } from "../utils";
 import { paintRect } from "./rect";
 
 export class CanvasNode {
@@ -36,6 +36,16 @@ export class CanvasNode {
 
     ctx.restore();
   }
+}
+
+export function randomNode() {
+  const node = document.createElement("rect");
+  node.setAttribute("x", "0");
+  node.setAttribute("y", "0");
+  node.setAttribute("width", "100");
+  node.setAttribute("height", "100");
+  node.setAttribute("fill", randomColor());
+  return node;
 }
 
 export function getNodes(elements: Element[]): CanvasNode[] {

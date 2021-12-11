@@ -5,11 +5,11 @@ import "./canvas-toolbar";
 import "./canvas-layers";
 import "./canvas-view";
 import "./canvas-properties";
+
 import { CanvasView } from "./canvas-view";
 import { CanvasLayers } from "./canvas-layers";
-import { getNodes } from "../nodes/base";
+import { getNodes, randomNode } from "../nodes/base";
 import { CanvasProperties } from "./canvas-properties";
-import { randomColor } from "../utils";
 
 @customElement("canvas-app")
 export class CanvasApp extends LitElement {
@@ -106,12 +106,7 @@ export class CanvasApp extends LitElement {
   }
 
   addNode() {
-    const node = document.createElement("rect");
-    node.setAttribute("x", "0");
-    node.setAttribute("y", "0");
-    node.setAttribute("width", "100");
-    node.setAttribute("height", "100");
-    node.setAttribute("fill", randomColor());
+    const node = randomNode();
     this.appendChild(node);
     this.items.push(node);
     this.canvas.paint();

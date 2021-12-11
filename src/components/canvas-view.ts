@@ -16,7 +16,7 @@ import { getNodes } from "../nodes/base";
 export class CanvasView extends LitElement {
   static styles = css``;
 
-  @property({ type: Number, attribute: "min-scale" }) minScale = 0.2;
+  @property({ type: Number, attribute: "min-scale" }) minScale = 0.25;
   @property({ type: Number, attribute: "max-scale" }) maxScale = 4;
   @property({ type: Array }) items: Element[] = [];
   @property({ type: Array }) selection: number[] = [];
