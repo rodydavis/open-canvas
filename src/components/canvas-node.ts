@@ -1,25 +1,40 @@
 import { getSizeFromElement, Rect } from "../utils";
 
 export class CanvasNode {
-  constructor(readonly rect: Rect, readonly child: Element) {}
+  constructor(readonly child: Element) {}
 
-  paint(ctx: CanvasRenderingContext2D) {
+  get tag(): string {
+    return this.child.tagName.toLowerCase();
+  }
+
+  get rect(): Rect {
+    return getSizeFromElement(this.child);
+  }
+
+  paint(ctx: CanvasRenderingContext2D): boolean {
     const { x, y, width, height } = this.rect;
-    if (this.child.tagName === "RECT") {
-      ctx.save();
-      ctx.fillStyle = this.child.getAttribute("fill") || "blue";
-      ctx.fillRect(x, y, width, height);
-      ctx.restore();
+    const fillColor = this.child.getAttribute("fill") || "blue";
+
+    ctx.save();
+
+    let painted = false;
+
+    switch (this.tag) {
+      case "rect":
+        ctx.fillStyle = fillColor;
+        ctx.fillRect(x, y, width, height);
+        painted = true;
+        break;
+      default:
+        break;
     }
+
+    ctx.restore();
+
+    return painted;
   }
 }
 
 export function getNodes(elements: Element[]): CanvasNode[] {
-  const items = [];
-  for (const child of elements) {
-    const { x, y, width, height } = getSizeFromElement(child);
-    const rect = { x, y, width, height };
-    items.push(new CanvasNode(rect, child));
-  }
-  return items;
+  return elements.map((child) => new CanvasNode(child));
 }
