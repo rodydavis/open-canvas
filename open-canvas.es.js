@@ -979,12 +979,7 @@ let CanvasToolbar = class extends s {
   render() {
     return p`<header>
       <span class="title">${this.label}</span>
-      <button
-        class="action"
-        @click=${() => {
-      new AddNode().dispatch(this);
-    }}
-      >
+      <button class="action" @click=${() => new AddNode().dispatch(this)}>
         +
       </button>
     </header>`;
@@ -1078,6 +1073,89 @@ __decorateClass$3([
 CanvasLayers = __decorateClass$3([
   n("canvas-layers")
 ], CanvasLayers);
+class OnPointerMove extends BaseCommand {
+  constructor(event) {
+    super("on-pointer-move");
+    this.event = event;
+  }
+  execute(app) {
+    const e2 = this.event;
+    e2.preventDefault();
+    if (app.canvas.pointers.get(e2.pointerId)) {
+      app.canvas.pointers.set(e2.pointerId, { x: e2.offsetX, y: e2.offsetY });
+      const { scale } = matrixInfo(app.canvas.context);
+      const md = { x: e2.movementX / scale, y: e2.movementY / scale };
+      const nodes = getNodes(app.canvas.items);
+      for (const idx of app.canvas.selection) {
+        const item = nodes[idx];
+        const realIdx = app.canvas.items.indexOf(item.child);
+        const newX = item.rect.x + md.x;
+        const newY = item.rect.y + md.y;
+        item.child.setAttribute("x", newX.toString());
+        item.child.setAttribute("y", newY.toString());
+        new UpdateNode(item.child, realIdx).dispatch(app);
+      }
+    }
+  }
+}
+class OnPointerDown extends BaseCommand {
+  constructor(event) {
+    super("on-pointer-down");
+    this.event = event;
+  }
+  execute(app) {
+    const e2 = this.event;
+    e2.preventDefault();
+    app.canvas.canvas.setPointerCapture(e2.pointerId);
+    app.canvas.pointers.set(e2.pointerId, { x: e2.offsetX, y: e2.offsetY });
+    const items = getNodes(app.canvas.items);
+    app.canvas.selection = [];
+    for (let i2 = 0; i2 < items.length; i2++) {
+      const item = items[i2];
+      const { x: x2, y, width, height } = item.rect;
+      const mo = toWorld(app.canvas.context, { x: e2.offsetX, y: e2.offsetY });
+      if (mo.x >= x2 && mo.x <= x2 + width && mo.y >= y && mo.y <= y + height) {
+        app.canvas.selection.push(i2);
+      }
+    }
+    app.canvas.selection = app.canvas.selection.reverse();
+    app.canvas.selection = app.canvas.selection.slice(0, 1);
+    new UpdateSelection(app.canvas.selection).dispatch(app);
+  }
+}
+class OnPointerUp extends BaseCommand {
+  constructor(event) {
+    super("on-pointer-up");
+    this.event = event;
+  }
+  execute(app) {
+    const e2 = this.event;
+    e2.preventDefault();
+    app.canvas.canvas.releasePointerCapture(e2.pointerId);
+    app.canvas.pointers.delete(e2.pointerId);
+  }
+}
+class OnWheel extends BaseCommand {
+  constructor(event) {
+    super("on-wheel");
+    this.event = event;
+  }
+  execute(app) {
+    const e2 = this.event;
+    e2.preventDefault();
+    const { scale } = matrixInfo(app.canvas.context);
+    if (e2.ctrlKey) {
+      const scaleDelta = -e2.deltaY * 0.01;
+      if (scale + scaleDelta > app.canvas.minScale && scale + scaleDelta < app.canvas.maxScale) {
+        new ZoomCanvas(scaleDelta).dispatch(app);
+      }
+    } else {
+      const offset = { x: -e2.deltaX * 2 * scale, y: -e2.deltaY * 2 * scale };
+      new PanCanvas(offset).dispatch(app);
+    }
+    app.canvas.paint();
+  }
+}
 var __defProp$2 = Object.defineProperty;
 var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
 var __decorateClass$2 = (decorators, target, key, kind) => {
@@ -1101,71 +1179,16 @@ let CanvasView = class extends s {
   }
   render() {
     return p`<canvas
-      @pointerup=${(e2) => this.onPointerUp(e2)}
-      @pointerdown=${(e2) => this.onPointerDown(e2)}
-      @pointermove=${(e2) => this.onPointerMove(e2)}
-      @wheel=${(e2) => this.onWheel(e2)}
+      @pointerup=${(e2) => new OnPointerUp(e2).dispatch(this)}
+      @pointerdown=${(e2) => new OnPointerDown(e2).dispatch(this)}
+      @pointermove=${(e2) => new OnPointerMove(e2).dispatch(this)}
+      @wheel=${(e2) => new OnWheel(e2).dispatch(this)}
     ></canvas>`;
   }
   get ctx() {
     return this.canvas.getContext("2d");
   }
   firstUpdated() {
-    this.paint();
-  }
-  onPointerMove(e2) {
-    e2.preventDefault();
-    if (this.pointers.get(e2.pointerId)) {
-      this.pointers.set(e2.pointerId, { x: e2.offsetX, y: e2.offsetY });
-      const { scale } = matrixInfo(this.context);
-      const md = { x: e2.movementX / scale, y: e2.movementY / scale };
-      const nodes = getNodes(this.items);
-      for (const idx of this.selection) {
-        const item = nodes[idx];
-        const realIdx = this.items.indexOf(item.child);
-        const newX = item.rect.x + md.x;
-        const newY = item.rect.y + md.y;
-        item.child.setAttribute("x", newX.toString());
-        item.child.setAttribute("y", newY.toString());
-        new UpdateNode(item.child, realIdx).dispatch(this);
-      }
-    }
-  }
-  onPointerDown(e2) {
-    e2.preventDefault();
-    this.canvas.setPointerCapture(e2.pointerId);
-    this.pointers.set(e2.pointerId, { x: e2.offsetX, y: e2.offsetY });
-    const items = getNodes(this.items);
-    this.selection = [];
-    for (let i2 = 0; i2 < items.length; i2++) {
-      const item = items[i2];
-      const { x: x2, y, width, height } = item.rect;
-      const mo = toWorld(this.context, { x: e2.offsetX, y: e2.offsetY });
-      if (mo.x >= x2 && mo.x <= x2 + width && mo.y >= y && mo.y <= y + height) {
-        this.selection.push(i2);
-      }
-    }
-    this.selection = this.selection.reverse();
-    this.selection = this.selection.slice(0, 1);
-    new UpdateSelection(this.selection).dispatch(this);
-  }
-  onPointerUp(e2) {
-    e2.preventDefault();
-    this.canvas.releasePointerCapture(e2.pointerId);
-    this.pointers.delete(e2.pointerId);
-  }
-  onWheel(e2) {
-    e2.preventDefault();
-    const { scale } = matrixInfo(this.context);
-    if (e2.ctrlKey) {
-      const scaleDelta = -e2.deltaY * 0.01;
-      if (scale + scaleDelta > this.minScale && scale + scaleDelta < this.maxScale) {
-        new ZoomCanvas(scaleDelta).dispatch(this);
-      }
-    } else {
-      const offset = { x: -e2.deltaX * 2 * scale, y: -e2.deltaY * 2 * scale };
-      new PanCanvas(offset).dispatch(this);
-    }
     this.paint();
   }
   paint() {
