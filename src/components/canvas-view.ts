@@ -4,7 +4,6 @@ import {
   MatrixContext,
   defaultMatrix,
   applyMatrix,
-  createMatrix,
   matrixInfo,
   toWorld,
 } from "../utils/matrix";
@@ -12,6 +11,9 @@ import { Offset, pxToNumber } from "../utils";
 import { drawGridBackground } from "../utils/grid";
 import { getNodes } from "../nodes/base";
 import { UpdateSelection } from "../commands/update-selection";
+import { UpdateNode } from "../commands/update-node";
+import { ZoomCanvas } from "../commands/zoom-canvas";
+import { PanCanvas } from "../commands/pan-canvas";
 
 @customElement("canvas-view")
 export class CanvasView extends LitElement {
@@ -53,12 +55,13 @@ export class CanvasView extends LitElement {
       const nodes = getNodes(this.items);
       for (const idx of this.selection) {
         const item = nodes[idx];
+        const realIdx = this.items.indexOf(item.child);
         // Move node
         const newX = item.rect.x + md.x;
         const newY = item.rect.y + md.y;
         item.child.setAttribute("x", newX.toString());
         item.child.setAttribute("y", newY.toString());
-        this.paint();
+        new UpdateNode(item.child, realIdx).dispatch(this);
       }
     }
   }
@@ -101,35 +104,13 @@ export class CanvasView extends LitElement {
         scale + scaleDelta > this.minScale &&
         scale + scaleDelta < this.maxScale
       ) {
-        this.zoom(scaleDelta);
+        new ZoomCanvas(scaleDelta).dispatch(this);
       }
     } else {
       const offset = { x: -e.deltaX * 2 * scale, y: -e.deltaY * 2 * scale };
-      this.pan(offset);
+      new PanCanvas(offset).dispatch(this);
     }
     this.paint();
-  }
-
-  zoom(amount: number) {
-    const { scale, offset, rotation } = matrixInfo(this.context);
-    let localScale = scale;
-    localScale += amount;
-    this.context = createMatrix(offset, localScale, rotation);
-  }
-
-  pan(delta: Offset) {
-    const { offset, scale, rotation } = matrixInfo(this.context);
-    let localOffset = offset;
-    localOffset.x += delta.x / scale;
-    localOffset.y += delta.y / scale;
-    this.context = createMatrix(localOffset, scale, rotation);
-  }
-
-  rotate(amount: number) {
-    const { rotation, offset, scale } = matrixInfo(this.context);
-    let localRotation = rotation;
-    localRotation += amount;
-    this.context = createMatrix(offset, scale, localRotation);
   }
 
   paint() {

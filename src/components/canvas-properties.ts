@@ -95,7 +95,7 @@ export class CanvasProperties extends LitElement {
         @input=${(e: Event) => {
           const input = e.target as HTMLInputElement;
           element.setAttribute(key, input.value);
-          new UpdateNode(this.items.indexOf(element), element).dispatch(this);
+          new UpdateNode(element, this.items.indexOf(element)).dispatch(this);
         }}
       />
     </div> `;

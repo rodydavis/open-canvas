@@ -2,7 +2,7 @@ import { CanvasApp } from "../components/canvas-app";
 import { BaseCommand } from "./base";
 
 export class UpdateNode extends BaseCommand {
-  constructor(readonly index: number, readonly node: Element) {
+  constructor(readonly node: Element, readonly index: number) {
     super("update-node");
   }
 
