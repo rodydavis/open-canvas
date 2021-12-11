@@ -1,5 +1,5 @@
 import { html, css, LitElement } from "lit";
-import { customElement, query, state } from "lit/decorators.js";
+import { customElement, property, query, state } from "lit/decorators.js";
 
 import "./canvas-toolbar";
 import "./canvas-layers";
@@ -58,6 +58,7 @@ export class CanvasApp extends LitElement {
   @query("canvas-properties") properties!: CanvasProperties;
   @state() items = Array.from(this.children);
   @state() selection: number[] = [];
+  @property({ type: Boolean, attribute: "debug" }) debug = false;
 
   render() {
     return html`<main>
@@ -82,6 +83,7 @@ export class CanvasApp extends LitElement {
     this.addEventListener("command", (e: Event) => {
       const event = e as CustomEvent;
       const command = event.detail;
+      if (this.debug) console.debug("command", command.name);
       command.execute(this);
     });
   }
