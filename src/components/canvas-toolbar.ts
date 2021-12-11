@@ -32,12 +32,7 @@ export class CanvasToolbar extends LitElement {
   render() {
     return html`<header>
       <span class="title">${this.label}</span>
-      <button
-        class="action"
-        @click=${() => {
-          new AddNode().dispatch(this);
-        }}
-      >
+      <button class="action" @click=${() => new AddNode().dispatch(this)}>
         +
       </button>
     </header>`;

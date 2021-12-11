@@ -5,17 +5,14 @@ import {
   defaultMatrix,
   applyMatrix,
   matrixInfo,
-  toWorld,
 } from "../utils/matrix";
 import { Offset, pxToNumber } from "../utils";
 import { drawGridBackground } from "../utils/grid";
 import { getNodes } from "../nodes";
-import {
-  PanCanvas,
-  UpdateNode,
-  UpdateSelection,
-  ZoomCanvas,
-} from "../commands";
+import { OnPointerMove } from "../commands/on-pointer-move";
+import { OnPointerDown } from "../commands/on-pointer-down";
+import { OnPointerUp } from "../commands/on-pointer-up";
+import { OnWheel } from "../commands/on-wheel";
 
 @customElement("canvas-view")
 export class CanvasView extends LitElement {
@@ -31,10 +28,10 @@ export class CanvasView extends LitElement {
 
   render() {
     return html`<canvas
-      @pointerup=${(e: PointerEvent) => this.onPointerUp(e)}
-      @pointerdown=${(e: PointerEvent) => this.onPointerDown(e)}
-      @pointermove=${(e: PointerEvent) => this.onPointerMove(e)}
-      @wheel=${(e: WheelEvent) => this.onWheel(e)}
+      @pointerup=${(e: PointerEvent) => new OnPointerUp(e).dispatch(this)}
+      @pointerdown=${(e: PointerEvent) => new OnPointerDown(e).dispatch(this)}
+      @pointermove=${(e: PointerEvent) => new OnPointerMove(e).dispatch(this)}
+      @wheel=${(e: WheelEvent) => new OnWheel(e).dispatch(this)}
     ></canvas>`;
   }
 
@@ -43,75 +40,6 @@ export class CanvasView extends LitElement {
   }
 
   firstUpdated() {
-    this.paint();
-  }
-
-  onPointerMove(e: PointerEvent) {
-    e.preventDefault();
-
-    if (this.pointers.get(e.pointerId)) {
-      this, this.pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
-
-      const { scale } = matrixInfo(this.context);
-      const md = { x: e.movementX / scale, y: e.movementY / scale };
-      const nodes = getNodes(this.items);
-      for (const idx of this.selection) {
-        const item = nodes[idx];
-        const realIdx = this.items.indexOf(item.child);
-        // Move node
-        const newX = item.rect.x + md.x;
-        const newY = item.rect.y + md.y;
-        item.child.setAttribute("x", newX.toString());
-        item.child.setAttribute("y", newY.toString());
-        new UpdateNode(item.child, realIdx).dispatch(this);
-      }
-    }
-  }
-
-  onPointerDown(e: PointerEvent) {
-    e.preventDefault();
-
-    this.canvas.setPointerCapture(e.pointerId);
-    this.pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
-
-    const items = getNodes(this.items);
-    this.selection = [];
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const { x, y, width, height } = item.rect;
-      const mo = toWorld(this.context, { x: e.offsetX, y: e.offsetY });
-      if (mo.x >= x && mo.x <= x + width && mo.y >= y && mo.y <= y + height) {
-        this.selection.push(i);
-      }
-    }
-    this.selection = this.selection.reverse();
-    this.selection = this.selection.slice(0, 1);
-
-    new UpdateSelection(this.selection).dispatch(this);
-  }
-
-  onPointerUp(e: PointerEvent) {
-    e.preventDefault();
-
-    this.canvas.releasePointerCapture(e.pointerId);
-    this.pointers.delete(e.pointerId);
-  }
-
-  onWheel(e: WheelEvent) {
-    e.preventDefault();
-    const { scale } = matrixInfo(this.context);
-    if (e.ctrlKey) {
-      const scaleDelta = -e.deltaY * 0.01;
-      if (
-        scale + scaleDelta > this.minScale &&
-        scale + scaleDelta < this.maxScale
-      ) {
-        new ZoomCanvas(scaleDelta).dispatch(this);
-      }
-    } else {
-      const offset = { x: -e.deltaX * 2 * scale, y: -e.deltaY * 2 * scale };
-      new PanCanvas(offset).dispatch(this);
-    }
     this.paint();
   }
 
