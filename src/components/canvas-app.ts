@@ -5,11 +5,10 @@ import "./canvas-toolbar";
 import "./canvas-layers";
 import "./canvas-view";
 import "./canvas-properties";
-
-import { CanvasView } from "./canvas-view";
+import { BaseCommand } from "../commands";
 import { CanvasLayers } from "./canvas-layers";
 import { CanvasProperties } from "./canvas-properties";
-import { BaseCommand } from "../commands/base";
+import { CanvasView } from "./canvas-view";
 
 @customElement("canvas-app")
 export class CanvasApp extends LitElement {

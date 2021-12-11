@@ -9,11 +9,13 @@ import {
 } from "../utils/matrix";
 import { Offset, pxToNumber } from "../utils";
 import { drawGridBackground } from "../utils/grid";
-import { getNodes } from "../nodes/base";
-import { UpdateSelection } from "../commands/update-selection";
-import { UpdateNode } from "../commands/update-node";
-import { ZoomCanvas } from "../commands/zoom-canvas";
-import { PanCanvas } from "../commands/pan-canvas";
+import { getNodes } from "../nodes";
+import {
+  PanCanvas,
+  UpdateNode,
+  UpdateSelection,
+  ZoomCanvas,
+} from "../commands";
 
 @customElement("canvas-view")
 export class CanvasView extends LitElement {

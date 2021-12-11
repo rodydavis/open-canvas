@@ -1,6 +1,6 @@
 import { html, css, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { UpdateNode } from "../commands/update-node";
+import { UpdateNode } from "../commands";
 import { colorNameToHex } from "../utils";
 
 @customElement("canvas-properties")

@@ -1,6 +1,6 @@
 import { html, css, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { UpdateSelection } from "../commands/update-selection";
+import { UpdateSelection } from "../commands";
 import { getNodes } from "../nodes/base";
 
 @customElement("canvas-layers")

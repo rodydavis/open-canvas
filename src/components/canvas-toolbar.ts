@@ -1,6 +1,6 @@
 import { html, css, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { AddNode } from "../commands/add-node";
+import { AddNode } from "../commands";
 
 @customElement("canvas-toolbar")
 export class CanvasToolbar extends LitElement {
