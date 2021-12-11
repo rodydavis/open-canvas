@@ -830,6 +830,15 @@ class CanvasNode {
     ctx.restore();
   }
 }
+function randomNode() {
+  const node = document.createElement("rect");
+  node.setAttribute("x", "0");
+  node.setAttribute("y", "0");
+  node.setAttribute("width", "100");
+  node.setAttribute("height", "100");
+  node.setAttribute("fill", randomColor());
+  return node;
+}
 function getNodes(elements) {
   return elements.map((child) => new CanvasNode(child));
 }
@@ -970,12 +979,8 @@ function applyMatrix(ctx, context) {
 function drawGridBackground(ctx, size, offset, scale) {
   ctx.save();
   const { width, height } = size;
-  drawDots(ctx, width, height, scale, offset);
-  ctx.restore();
-}
-function drawDots(ctx, width, height, scale, offset) {
-  let r2 = 2;
-  const gridSize = 20 * scale;
+  const r2 = 2;
+  const gridSize = 25 * scale;
   const gridOffsetDx = offset.x % gridSize;
   const gridOffsetDy = offset.y % gridSize;
   for (let x2 = gridOffsetDx; x2 < width; x2 += gridSize) {
@@ -984,6 +989,7 @@ function drawDots(ctx, width, height, scale, offset) {
       ctx.fillRect(x2 - r2 / 2, y - r2 / 2, r2, r2);
     }
   }
+  ctx.restore();
 }
 var __defProp$2 = Object.defineProperty;
 var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
@@ -999,7 +1005,7 @@ var __decorateClass$2 = (decorators, target, key, kind) => {
 let CanvasView = class extends s {
   constructor() {
     super(...arguments);
-    this.minScale = 0.2;
+    this.minScale = 0.25;
     this.maxScale = 4;
     this.items = [];
     this.selection = [];
@@ -1307,12 +1313,7 @@ let CanvasApp = class extends s {
     this.canvas.paint();
   }
   addNode() {
-    const node = document.createElement("rect");
-    node.setAttribute("x", "0");
-    node.setAttribute("y", "0");
-    node.setAttribute("width", "100");
-    node.setAttribute("height", "100");
-    node.setAttribute("fill", randomColor());
+    const node = randomNode();
     this.appendChild(node);
     this.items.push(node);
     this.canvas.paint();
