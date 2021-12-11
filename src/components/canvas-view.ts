@@ -11,6 +11,7 @@ import {
 import { Offset, pxToNumber } from "../utils";
 import { drawGridBackground } from "../utils/grid";
 import { getNodes } from "../nodes/base";
+import { UpdateSelection } from "../commands/update-selection";
 
 @customElement("canvas-view")
 export class CanvasView extends LitElement {
@@ -81,15 +82,7 @@ export class CanvasView extends LitElement {
     this.selection = this.selection.reverse();
     this.selection = this.selection.slice(0, 1);
 
-    this.dispatchEvent(
-      new CustomEvent("selection-changed", {
-        detail: {
-          selection: this.selection,
-        },
-        bubbles: true,
-        composed: true,
-      })
-    );
+    new UpdateSelection(this.selection).dispatch(this);
   }
 
   onPointerUp(e: PointerEvent) {

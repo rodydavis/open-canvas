@@ -1,5 +1,6 @@
 import { html, css, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { AddNode } from "../commands/add-node";
 
 @customElement("canvas-toolbar")
 export class CanvasToolbar extends LitElement {
@@ -31,12 +32,15 @@ export class CanvasToolbar extends LitElement {
   render() {
     return html`<header>
       <span class="title">${this.label}</span>
-      <button class="action" @click=${this.addNodeAction}>+</button>
+      <button
+        class="action"
+        @click=${() => {
+          new AddNode().dispatch(this);
+        }}
+      >
+        +
+      </button>
     </header>`;
-  }
-
-  addNodeAction() {
-    this.dispatchEvent(new CustomEvent("add-node"));
   }
 }
 

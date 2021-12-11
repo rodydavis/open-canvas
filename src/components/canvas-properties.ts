@@ -1,5 +1,6 @@
 import { html, css, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { UpdateNode } from "../commands/update-node";
 import { colorNameToHex } from "../utils";
 
 @customElement("canvas-properties")
@@ -94,16 +95,7 @@ export class CanvasProperties extends LitElement {
         @input=${(e: Event) => {
           const input = e.target as HTMLInputElement;
           element.setAttribute(key, input.value);
-          this.dispatchEvent(
-            new CustomEvent("node-updated", {
-              bubbles: true,
-              composed: true,
-              detail: {
-                node: element,
-                index: this.items.indexOf(element),
-              },
-            })
-          );
+          new UpdateNode(this.items.indexOf(element), element).dispatch(this);
         }}
       />
     </div> `;

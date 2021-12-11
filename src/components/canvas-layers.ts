@@ -1,5 +1,6 @@
 import { html, css, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { UpdateSelection } from "../commands/update-selection";
 import { getNodes } from "../nodes/base";
 
 @customElement("canvas-layers")
@@ -42,15 +43,7 @@ export class CanvasLayers extends LitElement {
 
   onSelectNodes(indices: number[]) {
     this.selection = indices;
-    this.dispatchEvent(
-      new CustomEvent("selection-changed", {
-        detail: {
-          selection: this.selection,
-        },
-        bubbles: true,
-        composed: true,
-      })
-    );
+    new UpdateSelection(indices).dispatch(this);
   }
 }
 

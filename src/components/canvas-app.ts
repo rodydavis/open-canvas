@@ -8,8 +8,8 @@ import "./canvas-properties";
 
 import { CanvasView } from "./canvas-view";
 import { CanvasLayers } from "./canvas-layers";
-import { getNodes, randomNode } from "../nodes/base";
 import { CanvasProperties } from "./canvas-properties";
+import { BaseCommand } from "../commands/base";
 
 @customElement("canvas-app")
 export class CanvasApp extends LitElement {
@@ -62,70 +62,37 @@ export class CanvasApp extends LitElement {
 
   render() {
     return html`<main>
-      <canvas-toolbar
-        @add-node=${() => {
-          this.addNode();
-        }}
-      ></canvas-toolbar>
+      <canvas-toolbar></canvas-toolbar>
       <canvas-layers
         .items=${this.items}
         .selection=${this.selection}
-        @selection-changed=${(e: CustomEvent) => {
-          const selection = e.detail.selection;
-          this.updateSelection(selection);
-        }}
       ></canvas-layers>
       <canvas-view
         .items=${this.items}
         .selection=${this.selection}
-        @selection-changed=${(e: CustomEvent) => {
-          const selection = e.detail.selection;
-          this.updateSelection(selection);
-        }}
       ></canvas-view>
       <canvas-properties
         .items=${this.items}
         .selection=${this.selection}
-        @node-updated=${(e: CustomEvent) => {
-          const node = e.detail.node;
-          const index = e.detail.index;
-          this.items[index] = node;
-          this.canvas.paint();
-          this.layers.requestUpdate();
-        }}
       ></canvas-properties>
     </main> `;
   }
 
   firstUpdated() {
     window.addEventListener("resize", () => this.resize());
+    this.addEventListener("command", (e: Event) => {
+      const event = e as CustomEvent;
+      const command = event.detail;
+      command.execute(this);
+    });
   }
 
   resize() {
     this.canvas.paint();
   }
 
-  addNode() {
-    const node = randomNode();
-    this.appendChild(node);
-    this.items.push(node);
-    this.canvas.paint();
-    this.layers.requestUpdate();
-    this.updateSelection([this.items.length - 1]);
-  }
-
-  updateSelection(indices: number[]) {
-    this.selection = indices;
-    const items = getNodes(this.items);
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (this.selection.includes(i)) {
-        item.child.setAttribute("selected", "");
-      } else {
-        item.child.removeAttribute("selected");
-      }
-    }
-    this.canvas.paint();
+  addCommand(command: BaseCommand) {
+    command.execute(this);
   }
 }
 
