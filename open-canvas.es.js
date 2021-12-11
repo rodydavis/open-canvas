@@ -684,60 +684,6 @@ function i(i2, n2) {
     return t2;
   } });
 }
-var __defProp$4 = Object.defineProperty;
-var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
-var __decorateClass$4 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
-      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result)
-    __defProp$4(target, key, result);
-  return result;
-};
-let CanvasToolbar = class extends s {
-  constructor() {
-    super(...arguments);
-    this.label = document.title;
-  }
-  render() {
-    return p`<header>
-      <span class="title">${this.label}</span>
-      <button class="action" @click=${this.addNodeAction}>+</button>
-    </header>`;
-  }
-  addNodeAction() {
-    this.dispatchEvent(new CustomEvent("add-node"));
-  }
-};
-CanvasToolbar.styles = r$2`
-    header {
-      width: var(--canvas-toolbar-width);
-      height: var(--canvas-toolbar-height);
-      background-color: var(--canvas-toolbar-background-color, black);
-      color: var(--canvas-toolbar-color, white);
-      border-bottom: var(--canvas-toolbar-border-bottom, 1px solid white);
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-    }
-    span.title {
-      margin-left: var(--canvas-toolbar-margin-left, 10px);
-      font-family: var(--canvas-toolbar-font-family, sans-serif);
-      font-size: var(--canvas-toolbar-font-size, 20px);
-      font-weight: var(--canvas-toolbar-font-weight, bold);
-    }
-    button.action {
-      margin-right: var(--canvas-toolbar-margin-right, 10px);
-    }
-  `;
-__decorateClass$4([
-  e({ type: String })
-], CanvasToolbar.prototype, "label", 2);
-CanvasToolbar = __decorateClass$4([
-  n("canvas-toolbar")
-], CanvasToolbar);
 function getSizeFromElement(elem) {
   const xAttr = elem.getAttribute("x");
   const yAttr = elem.getAttribute("y");
@@ -842,6 +788,114 @@ function randomNode() {
 function getNodes(elements) {
   return elements.map((child) => new CanvasNode(child));
 }
+class BaseCommand {
+  constructor(name) {
+    this.name = name;
+  }
+  toEvent() {
+    return new CustomEvent("command", {
+      bubbles: true,
+      composed: true,
+      detail: {
+        name: this.name,
+        execute: this.execute.bind(this)
+      }
+    });
+  }
+  dispatch(target) {
+    target.dispatchEvent(this.toEvent());
+  }
+}
+class UpdateSelection extends BaseCommand {
+  constructor(indices) {
+    super("update-selection");
+    this.indices = indices;
+  }
+  execute(app) {
+    app.selection = this.indices;
+    const items = getNodes(app.items);
+    for (let i2 = 0; i2 < items.length; i2++) {
+      const item = items[i2];
+      if (app.selection.includes(i2)) {
+        item.child.setAttribute("selected", "");
+      } else {
+        item.child.removeAttribute("selected");
+      }
+    }
+    app.canvas.paint();
+  }
+}
+class AddNode extends BaseCommand {
+  constructor() {
+    super("add-node");
+  }
+  execute(app) {
+    const node = randomNode();
+    app.appendChild(node);
+    app.items.push(node);
+    app.canvas.paint();
+    app.layers.requestUpdate();
+    app.addCommand(new UpdateSelection([app.items.length - 1]));
+  }
+}
+var __defProp$4 = Object.defineProperty;
+var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
+var __decorateClass$4 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
+  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
+    if (decorator = decorators[i2])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result)
+    __defProp$4(target, key, result);
+  return result;
+};
+let CanvasToolbar = class extends s {
+  constructor() {
+    super(...arguments);
+    this.label = document.title;
+  }
+  render() {
+    return p`<header>
+      <span class="title">${this.label}</span>
+      <button
+        class="action"
+        @click=${() => {
+      new AddNode().dispatch(this);
+    }}
+      >
+        +
+      </button>
+    </header>`;
+  }
+};
+CanvasToolbar.styles = r$2`
+    header {
+      width: var(--canvas-toolbar-width);
+      height: var(--canvas-toolbar-height);
+      background-color: var(--canvas-toolbar-background-color, black);
+      color: var(--canvas-toolbar-color, white);
+      border-bottom: var(--canvas-toolbar-border-bottom, 1px solid white);
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+    span.title {
+      margin-left: var(--canvas-toolbar-margin-left, 10px);
+      font-family: var(--canvas-toolbar-font-family, sans-serif);
+      font-size: var(--canvas-toolbar-font-size, 20px);
+      font-weight: var(--canvas-toolbar-font-weight, bold);
+    }
+    button.action {
+      margin-right: var(--canvas-toolbar-margin-right, 10px);
+    }
+  `;
+__decorateClass$4([
+  e({ type: String })
+], CanvasToolbar.prototype, "label", 2);
+CanvasToolbar = __decorateClass$4([
+  n("canvas-toolbar")
+], CanvasToolbar);
 var __defProp$3 = Object.defineProperty;
 var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
 var __decorateClass$3 = (decorators, target, key, kind) => {
@@ -874,13 +928,7 @@ let CanvasLayers = class extends s {
   }
   onSelectNodes(indices) {
     this.selection = indices;
-    this.dispatchEvent(new CustomEvent("selection-changed", {
-      detail: {
-        selection: this.selection
-      },
-      bubbles: true,
-      composed: true
-    }));
+    new UpdateSelection(indices).dispatch(this);
   }
 };
 CanvasLayers.styles = r$2`
@@ -1059,13 +1107,7 @@ let CanvasView = class extends s {
     }
     this.selection = this.selection.reverse();
     this.selection = this.selection.slice(0, 1);
-    this.dispatchEvent(new CustomEvent("selection-changed", {
-      detail: {
-        selection: this.selection
-      },
-      bubbles: true,
-      composed: true
-    }));
+    new UpdateSelection(this.selection).dispatch(this);
   }
   onPointerUp(e2) {
     e2.preventDefault();
@@ -1144,6 +1186,20 @@ __decorateClass$2([
 CanvasView = __decorateClass$2([
   n("canvas-view")
 ], CanvasView);
+class UpdateNode extends BaseCommand {
+  constructor(index, node) {
+    super("update-node");
+    this.index = index;
+    this.node = node;
+  }
+  execute(app) {
+    const node = this.node;
+    const index = this.index;
+    app.items[index] = node;
+    app.canvas.paint();
+    app.layers.requestUpdate();
+  }
+}
 var __defProp$1 = Object.defineProperty;
 var __getOwnPropDesc$1 = Object.getOwnPropertyDescriptor;
 var __decorateClass$1 = (decorators, target, key, kind) => {
@@ -1217,14 +1273,7 @@ let CanvasProperties = class extends s {
         @input=${(e2) => {
       const input = e2.target;
       element.setAttribute(key, input.value);
-      this.dispatchEvent(new CustomEvent("node-updated", {
-        bubbles: true,
-        composed: true,
-        detail: {
-          node: element,
-          index: this.items.indexOf(element)
-        }
-      }));
+      new UpdateNode(this.items.indexOf(element), element).dispatch(this);
     }}
       />
     </div> `;
@@ -1272,66 +1321,34 @@ let CanvasApp = class extends s {
   }
   render() {
     return p`<main>
-      <canvas-toolbar
-        @add-node=${() => {
-      this.addNode();
-    }}
-      ></canvas-toolbar>
+      <canvas-toolbar></canvas-toolbar>
       <canvas-layers
         .items=${this.items}
         .selection=${this.selection}
-        @selection-changed=${(e2) => {
-      const selection = e2.detail.selection;
-      this.updateSelection(selection);
-    }}
       ></canvas-layers>
       <canvas-view
         .items=${this.items}
         .selection=${this.selection}
-        @selection-changed=${(e2) => {
-      const selection = e2.detail.selection;
-      this.updateSelection(selection);
-    }}
       ></canvas-view>
       <canvas-properties
         .items=${this.items}
         .selection=${this.selection}
-        @node-updated=${(e2) => {
-      const node = e2.detail.node;
-      const index = e2.detail.index;
-      this.items[index] = node;
-      this.canvas.paint();
-      this.layers.requestUpdate();
-    }}
       ></canvas-properties>
     </main> `;
   }
   firstUpdated() {
     window.addEventListener("resize", () => this.resize());
+    this.addEventListener("command", (e2) => {
+      const event = e2;
+      const command = event.detail;
+      command.execute(this);
+    });
   }
   resize() {
     this.canvas.paint();
   }
-  addNode() {
-    const node = randomNode();
-    this.appendChild(node);
-    this.items.push(node);
-    this.canvas.paint();
-    this.layers.requestUpdate();
-    this.updateSelection([this.items.length - 1]);
-  }
-  updateSelection(indices) {
-    this.selection = indices;
-    const items = getNodes(this.items);
-    for (let i2 = 0; i2 < items.length; i2++) {
-      const item = items[i2];
-      if (this.selection.includes(i2)) {
-        item.child.setAttribute("selected", "");
-      } else {
-        item.child.removeAttribute("selected");
-      }
-    }
-    this.canvas.paint();
+  addCommand(command) {
+    command.execute(this);
   }
 };
 CanvasApp.styles = r$2`
