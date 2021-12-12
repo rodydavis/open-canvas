@@ -814,11 +814,60 @@ function applyMatrix(ctx, context) {
   const m2 = context.matrix;
   ctx.setTransform(m2[0], m2[1], m2[2], m2[3], m2[4], m2[5]);
 }
+function paintCircle(ctx, node) {
+  const { x: x2, y, width, height } = getSizeFromElement(node);
+  const fillColor = node.getAttribute("fill");
+  const strokeColor = node.getAttribute("stroke");
+  const strokeWidth = node.getAttribute("stroke-width");
+  const cx = node.getAttribute("cx") || "50";
+  const cy = node.getAttribute("cy") || "50";
+  const r2 = node.getAttribute("r") || "50";
+  ctx.save();
+  if (fillColor) {
+    ctx.fillStyle = fillColor;
+    ctx.beginPath();
+    ctx.arc(x2 + width * parseFloat(cx) / 100, y + height * parseFloat(cy) / 100, width * parseFloat(r2) / 100, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+  if (strokeColor) {
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = strokeWidth ? parseFloat(strokeWidth) : 1;
+    ctx.beginPath();
+    ctx.arc(x2 + width * parseFloat(cx) / 100, y + height * parseFloat(cy) / 100, width * parseFloat(r2) / 100, 0, 2 * Math.PI);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function paintG(ctx, node) {
+  const { x: x2, y, width, height } = getSizeFromElement(node);
+  const fillColor = node.getAttribute("fill");
+  const strokeColor = node.getAttribute("stroke");
+  const strokeWidth = node.getAttribute("stroke-width");
+  ctx.save();
+  const children = Array.from(node.children);
+  if (fillColor) {
+    ctx.fillStyle = fillColor;
+    ctx.fillRect(x2, y, width, height);
+  }
+  if (strokeColor) {
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = strokeWidth ? parseFloat(strokeWidth) : 1;
+    ctx.strokeRect(x2, y, width, height);
+  }
+  ctx.translate(x2, y);
+  ctx.beginPath();
+  ctx.rect(0, 0, width, height);
+  ctx.clip();
+  for (const child of children) {
+    paintNode(ctx, child);
+  }
+  ctx.restore();
+}
 function paintRect(ctx, node) {
-  const { x: x2, y, width, height } = node.rect;
-  const fillColor = node.child.getAttribute("fill");
-  const strokeColor = node.child.getAttribute("stroke");
-  const strokeWidth = node.child.getAttribute("stroke-width");
+  const { x: x2, y, width, height } = getSizeFromElement(node);
+  const fillColor = node.getAttribute("fill");
+  const strokeColor = node.getAttribute("stroke");
+  const strokeWidth = node.getAttribute("stroke-width");
   ctx.save();
   if (fillColor) {
     ctx.fillStyle = fillColor;
@@ -831,22 +880,31 @@ function paintRect(ctx, node) {
   }
   ctx.restore();
 }
+const svgShapes = [
+  "rect",
+  "circle",
+  "ellipse",
+  "line",
+  "polygon",
+  "svg",
+  "g"
+];
+function paintSvg(ctx, node) {
+  const svg = node;
+  paintG(ctx, svg);
+}
 class CanvasNode {
   constructor(child) {
     this.child = child;
   }
   get tag() {
-    return this.child.tagName.toLowerCase();
+    return this.child.nodeName.toLowerCase();
   }
   get rect() {
     return getSizeFromElement(this.child);
   }
   paint(ctx) {
-    switch (this.tag) {
-      case "rect":
-        paintRect(ctx, this);
-        break;
-    }
+    paintNode(ctx, this.child);
     this.paintBackground(ctx);
   }
   paintBackground(ctx) {
@@ -857,6 +915,19 @@ class CanvasNode {
       ctx.strokeRect(x2, y, width, height);
     }
     ctx.restore();
+  }
+}
+function paintNode(ctx, child) {
+  const tag = child.nodeName.toLowerCase();
+  switch (tag) {
+    case "rect":
+      return paintRect(ctx, child);
+    case "g":
+      return paintG(ctx, child);
+    case "circle":
+      return paintCircle(ctx, child);
+    case "svg":
+      return paintSvg(ctx, child);
   }
 }
 function randomNode() {
@@ -896,16 +967,21 @@ class UpdateSelection extends BaseCommand {
   }
   execute(app) {
     app.selection = this.indices;
-    const items = getNodes(app.items);
-    for (let i2 = 0; i2 < items.length; i2++) {
-      const item = items[i2];
-      if (app.selection.includes(i2)) {
-        item.child.setAttribute("selected", "");
-      } else {
-        item.child.removeAttribute("selected");
-      }
+    for (const item of app.items) {
+      selectAll(item, this.indices);
     }
     app.canvas.paint();
+  }
+}
+function selectAll(element, selection) {
+  if (selection.includes(element)) {
+    element.setAttribute("selected", "");
+  } else {
+    element.removeAttribute("selected");
+  }
+  const children = Array.from(element.children);
+  for (const child of children) {
+    selectAll(child, selection);
   }
 }
 class AddNode extends BaseCommand {
@@ -918,7 +994,8 @@ class AddNode extends BaseCommand {
     app.items.push(node);
     app.canvas.paint();
     app.layers.requestUpdate();
-    app.addCommand(new UpdateSelection([app.items.length - 1]));
+    const lastIdx = app.items.length - 1;
+    app.addCommand(new UpdateSelection([app.items[lastIdx]]));
   }
 }
 class PanCanvas extends BaseCommand {
@@ -946,6 +1023,7 @@ class UpdateNode extends BaseCommand {
     app.items[index] = node;
     app.canvas.paint();
     app.layers.requestUpdate();
+    app.properties.requestUpdate();
   }
 }
 class ZoomCanvas extends BaseCommand {
@@ -1034,14 +1112,32 @@ let CanvasLayers = class extends s {
     const items = getNodes(this.items);
     return p`<section>
       <ul>
-        ${items.map((e2, i2) => p`<li
-            ?selected=${e2.child.hasAttribute("selected")}
-            @click=${() => this.onSelectNodes([i2])}
-          >
-            ${e2.child.tagName}
-          </li>`)}
+        ${items.map((e2) => this.renderGroup(e2.child))}
       </ul>
     </section>`;
+  }
+  renderGroup(element) {
+    const children = Array.from(element.children);
+    return p`<li
+        ?selected=${element.hasAttribute("selected")}
+        @click=${() => this.onSelectNodes([element])}
+      >
+        ${this.getTitle(element)}
+      </li>
+      ${children.length === 0 ? "" : p`<ul>
+            ${children.map((e2) => {
+      return p`<li
+                ?selected=${e2.hasAttribute("selected")}
+                @click=${() => this.onSelectNodes([e2])}
+              >
+                ${this.getTitle(e2)}
+              </li>`;
+    })}
+          </ul>`} `;
+  }
+  getTitle(element) {
+    var _a;
+    return (_a = element.getAttribute("title")) != null ? _a : element.tagName.toLowerCase();
   }
   onSelectNodes(indices) {
     this.selection = indices;
@@ -1085,15 +1181,14 @@ class OnPointerMove extends BaseCommand {
       app.canvas.pointers.set(e2.pointerId, { x: e2.offsetX, y: e2.offsetY });
       const { scale } = matrixInfo(app.canvas.context);
       const md = { x: e2.movementX / scale, y: e2.movementY / scale };
-      const nodes = getNodes(app.canvas.items);
-      for (const idx of app.canvas.selection) {
-        const item = nodes[idx];
-        const realIdx = app.canvas.items.indexOf(item.child);
-        const newX = item.rect.x + md.x;
-        const newY = item.rect.y + md.y;
-        item.child.setAttribute("x", newX.toString());
-        item.child.setAttribute("y", newY.toString());
-        new UpdateNode(item.child, realIdx).dispatch(app);
+      for (const item of app.canvas.selection) {
+        const realIdx = app.canvas.items.indexOf(item);
+        const rect = getSizeFromElement(item);
+        const newX = rect.x + md.x;
+        const newY = rect.y + md.y;
+        item.setAttribute("x", newX.toString());
+        item.setAttribute("y", newY.toString());
+        new UpdateNode(item, realIdx).dispatch(app);
       }
     }
   }
@@ -1115,7 +1210,7 @@ class OnPointerDown extends BaseCommand {
       const { x: x2, y, width, height } = item.rect;
       const mo = toWorld(app.canvas.context, { x: e2.offsetX, y: e2.offsetY });
       if (mo.x >= x2 && mo.x <= x2 + width && mo.y >= y && mo.y <= y + height) {
-        app.canvas.selection.push(i2);
+        app.canvas.selection.push(item.child);
       }
     }
     app.canvas.selection = app.canvas.selection.reverse();
@@ -1257,14 +1352,16 @@ let CanvasProperties = class extends s {
       <p>No selection</p>`;
   }
   renderSingleSelection() {
-    const item = this.items[this.selection[0]];
-    const svgShapes = ["rect", "circle", "ellipse", "line", "polygon"];
+    const item = this.selection[this.selection.length - 1];
     const isShape = svgShapes.includes(item.tagName.toLowerCase());
     return p`<h2>${item.tagName}</h2>
-      ${isShape ? this.renderShapeProperties(item) : {}} `;
+      ${this.renderProperty("Description", "title", item, {
+      type: "text"
+    })}
+      ${isShape ? this.renderShapeProperties(item) : ""} `;
   }
   renderMultipleSelection() {
-    const items = this.selection.map((i2) => this.items[i2]);
+    const items = this.selection;
     return p`
       <h1>Properties</h1>
       <ul>
@@ -1274,6 +1371,21 @@ let CanvasProperties = class extends s {
   }
   renderShapeProperties(element) {
     return p`
+      <h4>Position</h4>
+      <form>
+        ${this.renderProperty("X", "x", element, {
+      type: "number"
+    })}
+        ${this.renderProperty("Y", "y", element, {
+      type: "number"
+    })}
+        ${this.renderProperty("WIdth", "width", element, {
+      type: "number"
+    })}
+        ${this.renderProperty("Height", "height", element, {
+      type: "number"
+    })}
+      </form>
       <h4>Style</h4>
       <form>
         ${this.renderProperty("Background Color", "fill", element, {
