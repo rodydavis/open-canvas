@@ -20,16 +20,14 @@
   <body>
     <canvas-app>
       <rect x="50" y="50" width="100" height="100" fill="red"> </rect>
-      <rect x="200" y="0" width="100" height="100" fill="green"></rect>
-      <rect x="0" y="200" width="100" height="100" fill="blue"></rect>
       <svg x="200" y="200" width="250" height="250">
         <rect x="50" y="50" width="100" height="100" fill="purple"></rect>
         <rect x="200" y="0" width="100" height="100" fill="teal"></rect>
         <rect x="0" y="200" width="100" height="100" fill="yellow"></rect>
       </svg>
       <circle
-        x="0"
-        y="0"
+        x="20"
+        y="90"
         cx="50"
         cy="50"
         r="50"
@@ -38,10 +36,15 @@
         fill="green"
       ></circle>
       <polygon
+        x="60"
+        y="70"
         points="100,100 150,25 150,75 200,0"
         fill="none"
         stroke="black"
       ></polygon>
+      <line x="20" y="50" x1="0" y1="80" x2="100" y2="20" stroke="black"></line>
+      <ellipse x="120" y="250" cx="100" cy="50" rx="100" ry="50" fill="orange">
+      </ellipse>
     </canvas-app>
   </body>
 </html>

@@ -1,8 +1,13 @@
+import { pathRect } from ".";
 import { getSizeFromElement, randomColor, Rect } from "../utils";
-import { pathCircle } from "./svg/circle";
-import { pathPolygon } from "./svg/polygon";
-import { pathRect } from "./svg/rect";
-import { paintSvg, svgShapes } from "./svg/svg";
+import {
+  svgShapes,
+  paintSvg,
+  pathCircle,
+  pathEllipse,
+  pathPolygon,
+  pathLine,
+} from "./svg";
 
 export class CanvasNode {
   constructor(readonly child: Element) {}
@@ -74,8 +79,14 @@ export function pathNode(child: Element) {
     case "circle":
       path = pathCircle(child);
       break;
+    case "ellipse":
+      path = pathEllipse(child);
+      break;
     case "polygon":
       path = pathPolygon(child);
+      break;
+    case "line":
+      path = pathLine(child);
       break;
     case "svg":
     case "g":
