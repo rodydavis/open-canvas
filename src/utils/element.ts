@@ -3,21 +3,11 @@ export function getSizeFromElement(elem: Element) {
   const yAttr = elem.getAttribute("y");
   const widthAttr = elem.getAttribute("width");
   const heightAttr = elem.getAttribute("height");
-  if (elem instanceof HTMLElement || elem instanceof SVGElement) {
-    const style = getComputedStyle(elem);
-    return {
-      x: xAttr ? pxToNumber(xAttr) : pxToNumber(style.left),
-      y: yAttr ? pxToNumber(yAttr) : pxToNumber(style.top),
-      width: widthAttr ? pxToNumber(widthAttr) : pxToNumber(style.width),
-      height: heightAttr ? pxToNumber(heightAttr) : pxToNumber(style.height),
-    };
-  }
-  const bounds = elem.getBoundingClientRect();
   return {
-    x: xAttr ? pxToNumber(xAttr) : bounds.left,
-    y: yAttr ? pxToNumber(yAttr) : bounds.top,
-    width: widthAttr ? pxToNumber(widthAttr) : bounds.width,
-    height: heightAttr ? pxToNumber(heightAttr) : bounds.height,
+    x: xAttr ? pxToNumber(xAttr) : 0,
+    y: yAttr ? pxToNumber(yAttr) : 0,
+    width: widthAttr ? pxToNumber(widthAttr) : 0,
+    height: heightAttr ? pxToNumber(heightAttr) : 0,
   };
 }
 

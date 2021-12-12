@@ -35,7 +35,7 @@ export class CanvasView extends LitElement {
     ></canvas>`;
   }
 
-  private get ctx(): CanvasRenderingContext2D {
+  get ctx(): CanvasRenderingContext2D {
     return this.canvas.getContext("2d")!;
   }
 

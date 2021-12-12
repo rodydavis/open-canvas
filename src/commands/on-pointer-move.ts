@@ -17,14 +17,13 @@ export class OnPointerMove extends BaseCommand {
       const { scale } = matrixInfo(app.canvas.context);
       const md = { x: e.movementX / scale, y: e.movementY / scale };
       for (const item of app.canvas.selection) {
-        const realIdx = app.canvas.items.indexOf(item);
         const rect = getSizeFromElement(item);
         // Move node
         const newX = rect.x + md.x;
         const newY = rect.y + md.y;
         item.setAttribute("x", newX.toString());
         item.setAttribute("y", newY.toString());
-        new UpdateNode(item, realIdx).dispatch(app);
+        new UpdateNode(item).dispatch(app);
       }
     }
   }

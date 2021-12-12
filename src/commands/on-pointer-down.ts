@@ -1,6 +1,6 @@
 import { CanvasApp } from "../components";
-import { getNodes } from "../nodes";
-import { toWorld } from "../utils";
+import { getNodes, pathNode } from "../nodes";
+import { pointHit, toWorld } from "../utils";
 import { BaseCommand } from "./base";
 import { UpdateSelection } from "./update-selection";
 
@@ -19,9 +19,10 @@ export class OnPointerDown extends BaseCommand {
     app.canvas.selection = [];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      const { x, y, width, height } = item.rect;
       const mo = toWorld(app.canvas.context, { x: e.offsetX, y: e.offsetY });
-      if (mo.x >= x && mo.x <= x + width && mo.y >= y && mo.y <= y + height) {
+      const path = pathNode(item.child);
+      const hit = pointHit(app.canvas.ctx, item.child, path, mo);
+      if (hit) {
         app.canvas.selection.push(item.child);
       }
     }

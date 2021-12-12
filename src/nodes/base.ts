@@ -1,8 +1,8 @@
 import { getSizeFromElement, randomColor, Rect } from "../utils";
-import { paintCircle } from "./svg/circle";
-import { paintG } from "./svg/g";
-import { paintRect } from "./svg/rect";
-import { paintSvg } from "./svg/svg";
+import { pathCircle } from "./svg/circle";
+import { pathPolygon } from "./svg/polygon";
+import { pathRect } from "./svg/rect";
+import { paintSvg, svgShapes } from "./svg/svg";
 
 export class CanvasNode {
   constructor(readonly child: Element) {}
@@ -36,18 +36,55 @@ export class CanvasNode {
 
 export function paintNode(ctx: CanvasRenderingContext2D, child: Element) {
   const tag = child.nodeName.toLowerCase();
+  ctx.save();
+  if (svgShapes.includes(tag)) {
+    const path = pathNode(child);
+    const fillColor = child.getAttribute("fill");
+    const strokeColor = child.getAttribute("stroke");
+    const strokeWidth = child.getAttribute("stroke-width");
+    const { x, y } = getSizeFromElement(child);
+
+    ctx.translate(x, y);
+
+    if (fillColor) {
+      ctx.fillStyle = fillColor;
+      ctx.fill(path);
+    }
+    if (strokeColor) {
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = strokeWidth ? Number(strokeWidth) : 1;
+      ctx.stroke(path);
+    }
+  } else {
+    switch (tag) {
+      case "svg":
+        paintSvg(ctx, child);
+        break;
+      default:
+        break;
+    }
+  }
+  ctx.restore();
+}
+
+export function pathNode(child: Element) {
+  const tag = child.nodeName.toLowerCase();
+  let path: Path2D | undefined;
   switch (tag) {
-    case "rect":
-      return paintRect(ctx, child);
-    case "g":
-      return paintG(ctx, child);
     case "circle":
-      return paintCircle(ctx, child);
+      path = pathCircle(child);
+      break;
+    case "polygon":
+      path = pathPolygon(child);
+      break;
     case "svg":
-      return paintSvg(ctx, child);
+    case "g":
+    case "rect":
     default:
+      path = pathRect(child);
       break;
   }
+  return path;
 }
 
 export function randomNode() {
