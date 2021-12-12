@@ -12,5 +12,6 @@ export class UpdateNode extends BaseCommand {
     app.items[index] = node;
     app.canvas.paint();
     app.layers.requestUpdate();
+    app.properties.requestUpdate();
   }
 }

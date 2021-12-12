@@ -1,6 +1,5 @@
 import { CanvasApp } from "../components";
-import { getNodes } from "../nodes";
-import { matrixInfo } from "../utils";
+import { getSizeFromElement, matrixInfo } from "../utils";
 import { BaseCommand } from "./base";
 import { UpdateNode } from "./update-node";
 
@@ -17,16 +16,15 @@ export class OnPointerMove extends BaseCommand {
 
       const { scale } = matrixInfo(app.canvas.context);
       const md = { x: e.movementX / scale, y: e.movementY / scale };
-      const nodes = getNodes(app.canvas.items);
-      for (const idx of app.canvas.selection) {
-        const item = nodes[idx];
-        const realIdx = app.canvas.items.indexOf(item.child);
+      for (const item of app.canvas.selection) {
+        const realIdx = app.canvas.items.indexOf(item);
+        const rect = getSizeFromElement(item);
         // Move node
-        const newX = item.rect.x + md.x;
-        const newY = item.rect.y + md.y;
-        item.child.setAttribute("x", newX.toString());
-        item.child.setAttribute("y", newY.toString());
-        new UpdateNode(item.child, realIdx).dispatch(app);
+        const newX = rect.x + md.x;
+        const newY = rect.y + md.y;
+        item.setAttribute("x", newX.toString());
+        item.setAttribute("y", newY.toString());
+        new UpdateNode(item, realIdx).dispatch(app);
       }
     }
   }

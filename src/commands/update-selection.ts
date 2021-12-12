@@ -1,23 +1,28 @@
 import { CanvasApp } from "../components/canvas-app";
-import { getNodes } from "../nodes/base";
 import { BaseCommand } from "./base";
 
 export class UpdateSelection extends BaseCommand {
-  constructor(readonly indices: number[]) {
+  constructor(readonly indices: Element[]) {
     super("update-selection");
   }
 
   execute(app: CanvasApp): void {
     app.selection = this.indices;
-    const items = getNodes(app.items);
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (app.selection.includes(i)) {
-        item.child.setAttribute("selected", "");
-      } else {
-        item.child.removeAttribute("selected");
-      }
+    for (const item of app.items) {
+      selectAll(item, this.indices);
     }
     app.canvas.paint();
+  }
+}
+
+function selectAll(element: Element, selection: Element[]) {
+  if (selection.includes(element)) {
+    element.setAttribute("selected", "");
+  } else {
+    element.removeAttribute("selected");
+  }
+  const children = Array.from(element.children);
+  for (const child of children) {
+    selectAll(child, selection);
   }
 }

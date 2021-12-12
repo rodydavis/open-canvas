@@ -22,7 +22,7 @@ export class OnPointerDown extends BaseCommand {
       const { x, y, width, height } = item.rect;
       const mo = toWorld(app.canvas.context, { x: e.offsetX, y: e.offsetY });
       if (mo.x >= x && mo.x <= x + width && mo.y >= y && mo.y <= y + height) {
-        app.canvas.selection.push(i);
+        app.canvas.selection.push(item.child);
       }
     }
     app.canvas.selection = app.canvas.selection.reverse();

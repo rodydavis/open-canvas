@@ -23,25 +23,44 @@ export class CanvasLayers extends LitElement {
   `;
 
   @property({ type: Array }) items: Element[] = [];
-  @property({ type: Array }) selection: number[] = [];
+  @property({ type: Array }) selection: Element[] = [];
 
   render() {
     const items = getNodes(this.items);
     return html`<section>
       <ul>
-        ${items.map(
-          (e, i) => html`<li
-            ?selected=${e.child.hasAttribute("selected")}
-            @click=${() => this.onSelectNodes([i])}
-          >
-            ${e.child.tagName}
-          </li>`
-        )}
+        ${items.map((e) => this.renderGroup(e.child))}
       </ul>
     </section>`;
   }
 
-  onSelectNodes(indices: number[]) {
+  renderGroup(element: Element) {
+    const children = Array.from(element.children);
+    return html`<li
+        ?selected=${element.hasAttribute("selected")}
+        @click=${() => this.onSelectNodes([element])}
+      >
+        ${this.getTitle(element)}
+      </li>
+      ${children.length === 0
+        ? ""
+        : html`<ul>
+            ${children.map((e) => {
+              return html`<li
+                ?selected=${e.hasAttribute("selected")}
+                @click=${() => this.onSelectNodes([e])}
+              >
+                ${this.getTitle(e)}
+              </li>`;
+            })}
+          </ul>`} `;
+  }
+
+  getTitle(element: Element) {
+    return element.getAttribute("title") ?? element.tagName.toLowerCase();
+  }
+
+  onSelectNodes(indices: Element[]) {
     this.selection = indices;
     new UpdateSelection(indices).dispatch(this);
   }

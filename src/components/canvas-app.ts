@@ -57,7 +57,7 @@ export class CanvasApp extends LitElement {
   @query("canvas-layers") layers!: CanvasLayers;
   @query("canvas-properties") properties!: CanvasProperties;
   @state() items = Array.from(this.children);
-  @state() selection: number[] = [];
+  @state() selection: Element[] = [];
   @property({ type: Boolean, attribute: "debug" }) debug = false;
 
   render() {

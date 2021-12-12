@@ -1,11 +1,14 @@
 import { getSizeFromElement, randomColor, Rect } from "../utils";
-import { paintRect } from "./rect";
+import { paintCircle } from "./svg/circle";
+import { paintG } from "./svg/g";
+import { paintRect } from "./svg/rect";
+import { paintSvg } from "./svg/svg";
 
 export class CanvasNode {
   constructor(readonly child: Element) {}
 
   get tag(): string {
-    return this.child.tagName.toLowerCase();
+    return this.child.nodeName.toLowerCase();
   }
 
   get rect(): Rect {
@@ -13,14 +16,7 @@ export class CanvasNode {
   }
 
   paint(ctx: CanvasRenderingContext2D) {
-    switch (this.tag) {
-      case "rect":
-        paintRect(ctx, this);
-        break;
-      default:
-        break;
-    }
-
+    paintNode(ctx, this.child);
     this.paintBackground(ctx);
   }
 
@@ -35,6 +31,22 @@ export class CanvasNode {
     }
 
     ctx.restore();
+  }
+}
+
+export function paintNode(ctx: CanvasRenderingContext2D, child: Element) {
+  const tag = child.nodeName.toLowerCase();
+  switch (tag) {
+    case "rect":
+      return paintRect(ctx, child);
+    case "g":
+      return paintG(ctx, child);
+    case "circle":
+      return paintCircle(ctx, child);
+    case "svg":
+      return paintSvg(ctx, child);
+    default:
+      break;
   }
 }
 

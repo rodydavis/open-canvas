@@ -1,6 +1,7 @@
 import { html, css, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { UpdateNode } from "../commands";
+import { svgShapes } from "../nodes/svg/svg";
 import { colorNameToHex } from "../utils";
 
 @customElement("canvas-properties")
@@ -21,7 +22,7 @@ export class CanvasProperties extends LitElement {
   `;
 
   @property({ type: Array }) items: Element[] = [];
-  @property({ type: Array }) selection: number[] = [];
+  @property({ type: Array }) selection: Element[] = [];
 
   render() {
     return html`<section>
@@ -39,15 +40,17 @@ export class CanvasProperties extends LitElement {
   }
 
   renderSingleSelection() {
-    const item = this.items[this.selection[0]];
-    const svgShapes = ["rect", "circle", "ellipse", "line", "polygon"];
+    const item = this.selection[this.selection.length - 1];
     const isShape = svgShapes.includes(item.tagName.toLowerCase());
     return html`<h2>${item.tagName}</h2>
-      ${isShape ? this.renderShapeProperties(item) : {}} `;
+      ${this.renderProperty("Description", "title", item, {
+        type: "text",
+      })}
+      ${isShape ? this.renderShapeProperties(item) : ""} `;
   }
 
   renderMultipleSelection() {
-    const items = this.selection.map((i) => this.items[i]);
+    const items = this.selection;
     return html`
       <h1>Properties</h1>
       <ul>
@@ -58,6 +61,21 @@ export class CanvasProperties extends LitElement {
 
   renderShapeProperties(element: Element) {
     return html`
+      <h4>Position</h4>
+      <form>
+        ${this.renderProperty("X", "x", element, {
+          type: "number",
+        })}
+        ${this.renderProperty("Y", "y", element, {
+          type: "number",
+        })}
+        ${this.renderProperty("WIdth", "width", element, {
+          type: "number",
+        })}
+        ${this.renderProperty("Height", "height", element, {
+          type: "number",
+        })}
+      </form>
       <h4>Style</h4>
       <form>
         ${this.renderProperty("Background Color", "fill", element, {

@@ -21,7 +21,7 @@ export class CanvasView extends LitElement {
   @property({ type: Number, attribute: "min-scale" }) minScale = 0.25;
   @property({ type: Number, attribute: "max-scale" }) maxScale = 4;
   @property({ type: Array }) items: Element[] = [];
-  @property({ type: Array }) selection: number[] = [];
+  @property({ type: Array }) selection: Element[] = [];
   @query("canvas") canvas!: HTMLCanvasElement;
   @state() context: MatrixContext = defaultMatrix;
   pointers: Map<number, Offset> = new Map();

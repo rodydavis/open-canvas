@@ -14,6 +14,7 @@ export class AddNode extends BaseCommand {
     app.items.push(node);
     app.canvas.paint();
     app.layers.requestUpdate();
-    app.addCommand(new UpdateSelection([app.items.length - 1]));
+    const lastIdx = app.items.length - 1;
+    app.addCommand(new UpdateSelection([app.items[lastIdx]]));
   }
 }
