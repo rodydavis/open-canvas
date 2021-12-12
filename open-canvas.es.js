@@ -711,21 +711,11 @@ function getSizeFromElement(elem) {
   const yAttr = elem.getAttribute("y");
   const widthAttr = elem.getAttribute("width");
   const heightAttr = elem.getAttribute("height");
-  if (elem instanceof HTMLElement || elem instanceof SVGElement) {
-    const style = getComputedStyle(elem);
-    return {
-      x: xAttr ? pxToNumber(xAttr) : pxToNumber(style.left),
-      y: yAttr ? pxToNumber(yAttr) : pxToNumber(style.top),
-      width: widthAttr ? pxToNumber(widthAttr) : pxToNumber(style.width),
-      height: heightAttr ? pxToNumber(heightAttr) : pxToNumber(style.height)
-    };
-  }
-  const bounds = elem.getBoundingClientRect();
   return {
-    x: xAttr ? pxToNumber(xAttr) : bounds.left,
-    y: yAttr ? pxToNumber(yAttr) : bounds.top,
-    width: widthAttr ? pxToNumber(widthAttr) : bounds.width,
-    height: heightAttr ? pxToNumber(heightAttr) : bounds.height
+    x: xAttr ? pxToNumber(xAttr) : 0,
+    y: yAttr ? pxToNumber(yAttr) : 0,
+    width: widthAttr ? pxToNumber(widthAttr) : 0,
+    height: heightAttr ? pxToNumber(heightAttr) : 0
   };
 }
 function pxToNumber(value) {
@@ -745,6 +735,15 @@ function drawGridBackground(ctx, size, offset, scale) {
     }
   }
   ctx.restore();
+}
+function pointHit(ctx, node, path, offset) {
+  let match = false;
+  ctx.save();
+  const { x: x2, y } = getSizeFromElement(node);
+  ctx.translate(x2, y);
+  match = ctx.isPointInPath(path, offset.x, offset.y) || ctx.isPointInStroke(path, offset.x, offset.y);
+  ctx.restore();
+  return match;
 }
 const DEFAULT_MATRIX = [1, 0, 0, 1, 0, 0];
 const DEFAULT_INVERSE_MATRIX = [1, 0, 0, 1];
@@ -814,31 +813,37 @@ function applyMatrix(ctx, context) {
   const m2 = context.matrix;
   ctx.setTransform(m2[0], m2[1], m2[2], m2[3], m2[4], m2[5]);
 }
-function paintCircle(ctx, node) {
-  const { x: x2, y, width, height } = getSizeFromElement(node);
-  const fillColor = node.getAttribute("fill");
-  const strokeColor = node.getAttribute("stroke");
-  const strokeWidth = node.getAttribute("stroke-width");
+function pathCircle(node) {
+  const { width, height } = getSizeFromElement(node);
   const cx = node.getAttribute("cx") || "50";
   const cy = node.getAttribute("cy") || "50";
   const r2 = node.getAttribute("r") || "50";
-  ctx.save();
-  if (fillColor) {
-    ctx.fillStyle = fillColor;
-    ctx.beginPath();
-    ctx.arc(x2 + width * parseFloat(cx) / 100, y + height * parseFloat(cy) / 100, width * parseFloat(r2) / 100, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-  if (strokeColor) {
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = strokeWidth ? parseFloat(strokeWidth) : 1;
-    ctx.beginPath();
-    ctx.arc(x2 + width * parseFloat(cx) / 100, y + height * parseFloat(cy) / 100, width * parseFloat(r2) / 100, 0, 2 * Math.PI);
-    ctx.stroke();
-  }
-  ctx.restore();
+  const path = new Path2D();
+  path.arc(width * parseFloat(cx) / 100, height * parseFloat(cy) / 100, width * parseFloat(r2) / 100, 0, 2 * Math.PI);
+  return path;
 }
-function paintG(ctx, node) {
+function pathPolygon(node) {
+  var _a;
+  const points = (_a = node.getAttribute("points")) != null ? _a : "";
+  const pointsArray = points.split(" ");
+  const path = new Path2D();
+  for (const point of pointsArray) {
+    const [x2, y] = point.split(",");
+    const pointX = Number(x2);
+    const pointY = Number(y);
+    path.lineTo(pointX, pointY);
+  }
+  path.closePath();
+  return path;
+}
+function pathRect(node) {
+  const { width, height } = getSizeFromElement(node);
+  const path = new Path2D();
+  path.rect(0, 0, width, height);
+  return path;
+}
+const svgShapes = ["rect", "circle", "ellipse", "line", "polygon"];
+function paintSvg(ctx, node) {
   const { x: x2, y, width, height } = getSizeFromElement(node);
   const fillColor = node.getAttribute("fill");
   const strokeColor = node.getAttribute("stroke");
@@ -862,36 +867,6 @@ function paintG(ctx, node) {
     paintNode(ctx, child);
   }
   ctx.restore();
-}
-function paintRect(ctx, node) {
-  const { x: x2, y, width, height } = getSizeFromElement(node);
-  const fillColor = node.getAttribute("fill");
-  const strokeColor = node.getAttribute("stroke");
-  const strokeWidth = node.getAttribute("stroke-width");
-  ctx.save();
-  if (fillColor) {
-    ctx.fillStyle = fillColor;
-    ctx.fillRect(x2, y, width, height);
-  }
-  if (strokeColor) {
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = strokeWidth ? parseFloat(strokeWidth) : 1;
-    ctx.strokeRect(x2, y, width, height);
-  }
-  ctx.restore();
-}
-const svgShapes = [
-  "rect",
-  "circle",
-  "ellipse",
-  "line",
-  "polygon",
-  "svg",
-  "g"
-];
-function paintSvg(ctx, node) {
-  const svg = node;
-  paintG(ctx, svg);
 }
 class CanvasNode {
   constructor(child) {
@@ -919,16 +894,50 @@ class CanvasNode {
 }
 function paintNode(ctx, child) {
   const tag = child.nodeName.toLowerCase();
-  switch (tag) {
-    case "rect":
-      return paintRect(ctx, child);
-    case "g":
-      return paintG(ctx, child);
-    case "circle":
-      return paintCircle(ctx, child);
-    case "svg":
-      return paintSvg(ctx, child);
+  ctx.save();
+  if (svgShapes.includes(tag)) {
+    const path = pathNode(child);
+    const fillColor = child.getAttribute("fill");
+    const strokeColor = child.getAttribute("stroke");
+    const strokeWidth = child.getAttribute("stroke-width");
+    const { x: x2, y } = getSizeFromElement(child);
+    ctx.translate(x2, y);
+    if (fillColor) {
+      ctx.fillStyle = fillColor;
+      ctx.fill(path);
+    }
+    if (strokeColor) {
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = strokeWidth ? Number(strokeWidth) : 1;
+      ctx.stroke(path);
+    }
+  } else {
+    switch (tag) {
+      case "svg":
+        paintSvg(ctx, child);
+        break;
+    }
   }
+  ctx.restore();
+}
+function pathNode(child) {
+  const tag = child.nodeName.toLowerCase();
+  let path;
+  switch (tag) {
+    case "circle":
+      path = pathCircle(child);
+      break;
+    case "polygon":
+      path = pathPolygon(child);
+      break;
+    case "svg":
+    case "g":
+    case "rect":
+    default:
+      path = pathRect(child);
+      break;
+  }
+  return path;
 }
 function randomNode() {
   const node = document.createElement("rect");
@@ -1012,15 +1021,11 @@ class PanCanvas extends BaseCommand {
   }
 }
 class UpdateNode extends BaseCommand {
-  constructor(node, index) {
+  constructor(node) {
     super("update-node");
     this.node = node;
-    this.index = index;
   }
   execute(app) {
-    const node = this.node;
-    const index = this.index;
-    app.items[index] = node;
     app.canvas.paint();
     app.layers.requestUpdate();
     app.properties.requestUpdate();
@@ -1182,13 +1187,12 @@ class OnPointerMove extends BaseCommand {
       const { scale } = matrixInfo(app.canvas.context);
       const md = { x: e2.movementX / scale, y: e2.movementY / scale };
       for (const item of app.canvas.selection) {
-        const realIdx = app.canvas.items.indexOf(item);
         const rect = getSizeFromElement(item);
         const newX = rect.x + md.x;
         const newY = rect.y + md.y;
         item.setAttribute("x", newX.toString());
         item.setAttribute("y", newY.toString());
-        new UpdateNode(item, realIdx).dispatch(app);
+        new UpdateNode(item).dispatch(app);
       }
     }
   }
@@ -1207,9 +1211,10 @@ class OnPointerDown extends BaseCommand {
     app.canvas.selection = [];
     for (let i2 = 0; i2 < items.length; i2++) {
       const item = items[i2];
-      const { x: x2, y, width, height } = item.rect;
       const mo = toWorld(app.canvas.context, { x: e2.offsetX, y: e2.offsetY });
-      if (mo.x >= x2 && mo.x <= x2 + width && mo.y >= y && mo.y <= y + height) {
+      const path = pathNode(item.child);
+      const hit = pointHit(app.canvas.ctx, item.child, path, mo);
+      if (hit) {
         app.canvas.selection.push(item.child);
       }
     }
@@ -1415,7 +1420,7 @@ let CanvasProperties = class extends s {
         @input=${(e2) => {
       const input = e2.target;
       element.setAttribute(key, input.value);
-      new UpdateNode(element, this.items.indexOf(element)).dispatch(this);
+      new UpdateNode(element).dispatch(this);
     }}
       />
     </div> `;
