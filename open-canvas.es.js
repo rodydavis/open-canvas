@@ -813,6 +813,12 @@ function applyMatrix(ctx, context) {
   const m2 = context.matrix;
   ctx.setTransform(m2[0], m2[1], m2[2], m2[3], m2[4], m2[5]);
 }
+function pathRect(node) {
+  const { width, height } = getSizeFromElement(node);
+  const path = new Path2D();
+  path.rect(0, 0, width, height);
+  return path;
+}
 function pathCircle(node) {
   const { width, height } = getSizeFromElement(node);
   const cx = node.getAttribute("cx") || "50";
@@ -820,6 +826,26 @@ function pathCircle(node) {
   const r2 = node.getAttribute("r") || "50";
   const path = new Path2D();
   path.arc(width * parseFloat(cx) / 100, height * parseFloat(cy) / 100, width * parseFloat(r2) / 100, 0, 2 * Math.PI);
+  return path;
+}
+function pathEllipse(node) {
+  const cx = node.getAttribute("cx") || "50";
+  const cy = node.getAttribute("cy") || "50";
+  const rx = node.getAttribute("rx") || "50";
+  const ry = node.getAttribute("ry") || "50";
+  const path = new Path2D();
+  path.ellipse(Number(cx), Number(cy), Number(rx), Number(ry), 0, 0, 2 * Math.PI);
+  return path;
+}
+function pathLine(node) {
+  var _a, _b, _c, _d;
+  const x1 = Number((_a = node.getAttribute("x1")) != null ? _a : "0");
+  const y1 = Number((_b = node.getAttribute("y1")) != null ? _b : "0");
+  const x2 = Number((_c = node.getAttribute("x2")) != null ? _c : "0");
+  const y2 = Number((_d = node.getAttribute("y2")) != null ? _d : "0");
+  const path = new Path2D();
+  path.moveTo(x1, y1);
+  path.lineTo(x2, y2);
   return path;
 }
 function pathPolygon(node) {
@@ -834,12 +860,6 @@ function pathPolygon(node) {
     path.lineTo(pointX, pointY);
   }
   path.closePath();
-  return path;
-}
-function pathRect(node) {
-  const { width, height } = getSizeFromElement(node);
-  const path = new Path2D();
-  path.rect(0, 0, width, height);
   return path;
 }
 const svgShapes = ["rect", "circle", "ellipse", "line", "polygon"];
@@ -927,8 +947,14 @@ function pathNode(child) {
     case "circle":
       path = pathCircle(child);
       break;
+    case "ellipse":
+      path = pathEllipse(child);
+      break;
     case "polygon":
       path = pathPolygon(child);
+      break;
+    case "line":
+      path = pathLine(child);
       break;
     case "svg":
     case "g":
