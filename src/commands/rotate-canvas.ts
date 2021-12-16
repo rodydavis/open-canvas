@@ -1,4 +1,4 @@
-import { CanvasApp } from "../components/canvas-app";
+import { CanvasAppState } from "../components/canvas-context";
 import { createMatrix, matrixInfo } from "../utils/matrix";
 import { BaseCommand } from "./base";
 
@@ -7,10 +7,11 @@ export class RotateCanvas extends BaseCommand {
     super("rotate-canvas");
   }
 
-  execute(app: CanvasApp): void {
-    const { rotation, offset, scale } = matrixInfo(app.canvas.context);
+  execute(state: CanvasAppState): void {
+    const { rotation, offset, scale } = matrixInfo(state.matrix);
     let localRotation = rotation;
     localRotation += this.delta;
-    app.canvas.context = createMatrix(offset, scale, localRotation);
+    state.matrix = createMatrix(offset, scale, localRotation);
+    state.notifyListeners();
   }
 }

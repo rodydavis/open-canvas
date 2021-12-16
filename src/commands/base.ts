@@ -1,8 +1,8 @@
-import { CanvasApp } from "../components/canvas-app";
+import { CanvasAppState } from "../components/canvas-context";
 
 export abstract class BaseCommand {
   constructor(readonly name: string) {}
-  abstract execute(app: CanvasApp): void;
+  abstract execute(state: CanvasAppState): void;
 
   toEvent(): CustomEvent {
     return new CustomEvent("command", {

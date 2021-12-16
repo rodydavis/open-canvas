@@ -1,8 +1,10 @@
 import { html, css, LitElement } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, state } from "lit/decorators.js";
 import { UpdateNode } from "../commands";
-import { svgShapes } from "../nodes/svg/svg";
+import { svgShapes } from "../extensions";
+import { GraphNode } from "../graph";
 import { colorNameToHex } from "../utils";
+import { useContext } from "./canvas-context";
 
 @customElement("canvas-properties")
 export class CanvasProperties extends LitElement {
@@ -14,21 +16,23 @@ export class CanvasProperties extends LitElement {
       color: var(--canvas-properties-color, #000);
       border-left: var(--canvas-properties-border-left, 1px solid #000);
       overflow-y: auto;
-      padding: var(--canvas-properties-padding, 10px);
+    }
+    section > * {
+      padding-left: var(--canvas-properties-padding, 10px);
     }
     .property {
       margin-bottom: var(--canvas-properties-margin-bottom, 10px);
     }
   `;
 
-  @property({ type: Array }) items: Element[] = [];
-  @property({ type: Array }) selection: Element[] = [];
+  @state() context = useContext(this);
 
   render() {
+    const state = this.context.state;
     return html`<section>
-      ${this.selection.length === 0
+      ${state.selection.length === 0
         ? this.renderEmptySelection()
-        : this.selection.length === 1
+        : state.selection.length === 1
         ? this.renderSingleSelection()
         : this.renderMultipleSelection()}
     </section>`;
@@ -40,9 +44,10 @@ export class CanvasProperties extends LitElement {
   }
 
   renderSingleSelection() {
-    const item = this.selection[this.selection.length - 1];
-    const isShape = svgShapes.includes(item.tagName.toLowerCase());
-    return html`<h2>${item.tagName}</h2>
+    const state = this.context.state;
+    const item = state.selection[state.selection.length - 1];
+    const isShape = svgShapes.includes(item.tag.toLowerCase());
+    return html`<h2>${item.tag}</h2>
       ${this.renderProperty("Description", "title", item, {
         type: "text",
       })}
@@ -50,16 +55,17 @@ export class CanvasProperties extends LitElement {
   }
 
   renderMultipleSelection() {
-    const items = this.selection;
+    const state = this.context.state;
+    const items = state.selection;
     return html`
       <h1>Properties</h1>
       <ul>
-        ${items.map((item) => html`<li>${item.tagName}</li>`)}
+        ${items.map((item) => html`<li>${item.tag}</li>`)}
       </ul>
     `;
   }
 
-  renderShapeProperties(element: Element) {
+  renderShapeProperties(element: GraphNode) {
     return html`
       <h4>Position</h4>
       <form>
@@ -94,7 +100,7 @@ export class CanvasProperties extends LitElement {
   renderProperty(
     label: string,
     key: string,
-    element: Element,
+    element: GraphNode,
     options?: {
       type?: "text" | "color" | "number";
       fallback?: string;
@@ -117,6 +123,10 @@ export class CanvasProperties extends LitElement {
         }}
       />
     </div> `;
+  }
+
+  firstUpdated() {
+    this.context = useContext(this);
   }
 }
 

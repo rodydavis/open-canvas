@@ -5,10 +5,8 @@ import "./canvas-toolbar";
 import "./canvas-layers";
 import "./canvas-view";
 import "./canvas-properties";
-import { BaseCommand } from "../commands";
-import { CanvasLayers } from "./canvas-layers";
-import { CanvasProperties } from "./canvas-properties";
-import { CanvasView } from "./canvas-view";
+import { pxToNumber } from "../utils";
+import { createContext } from "./canvas-context";
 
 @customElement("canvas-app")
 export class CanvasApp extends LitElement {
@@ -33,6 +31,7 @@ export class CanvasApp extends LitElement {
       grid-template-areas:
         "toolbar toolbar toolbar"
         "layers view properties";
+      overflow: hidden;
     }
 
     canvas-toolbar {
@@ -53,47 +52,43 @@ export class CanvasApp extends LitElement {
   `;
 
   @query("main") main!: HTMLElement;
-  @query("canvas-view") canvas!: CanvasView;
-  @query("canvas-layers") layers!: CanvasLayers;
-  @query("canvas-properties") properties!: CanvasProperties;
-  @state() items = Array.from(this.children);
-  @state() selection: Element[] = [];
   @property({ type: Boolean, attribute: "debug" }) debug = false;
+  @state() context = createContext(this);
 
   render() {
     return html`<main>
       <canvas-toolbar></canvas-toolbar>
-      <canvas-layers
-        .items=${this.items}
-        .selection=${this.selection}
-      ></canvas-layers>
-      <canvas-view
-        .items=${this.items}
-        .selection=${this.selection}
-      ></canvas-view>
-      <canvas-properties
-        .items=${this.items}
-        .selection=${this.selection}
-      ></canvas-properties>
+      <canvas-layers></canvas-layers>
+      <canvas-view></canvas-view>
+      <canvas-properties></canvas-properties>
     </main> `;
   }
 
   firstUpdated() {
     window.addEventListener("resize", () => this.resize());
-    this.addEventListener("command", (e: Event) => {
-      const event = e as CustomEvent;
-      const command = event.detail;
-      if (this.debug) console.debug("command", command.name);
-      command.execute(this);
-    });
+    const state = this.context.state;
+    const items = Array.from(this.children);
+    for (const elem of items) {
+      for (const ext of state.extensions) {
+        if (ext.valid(elem.tagName.toLowerCase())) {
+          const node = ext.createNode(elem, state.store);
+          state.store.addNode(node);
+        }
+      }
+    }
+    state.notifyListeners();
   }
 
   resize() {
-    this.canvas.paint();
-  }
-
-  addCommand(command: BaseCommand) {
-    command.execute(this);
+    const state = this.context.state;
+    const computedStyle = getComputedStyle(this.main);
+    state.canvas.width = pxToNumber(
+      computedStyle.getPropertyValue("--canvas-view-width")
+    );
+    state.canvas.height = pxToNumber(
+      computedStyle.getPropertyValue("--canvas-view-height")
+    );
+    state.notifyListeners();
   }
 }
 

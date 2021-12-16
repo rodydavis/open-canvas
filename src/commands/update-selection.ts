@@ -1,21 +1,22 @@
-import { CanvasApp } from "../components/canvas-app";
+import { CanvasAppState } from "../components/canvas-context";
+import { GraphNode } from "../graph";
 import { BaseCommand } from "./base";
 
 export class UpdateSelection extends BaseCommand {
-  constructor(readonly indices: Element[]) {
+  constructor(readonly indices: GraphNode[]) {
     super("update-selection");
   }
 
-  execute(app: CanvasApp): void {
-    app.selection = this.indices;
-    for (const item of app.items) {
+  execute(state: CanvasAppState): void {
+    state.selection = this.indices;
+    for (const item of state.store.rootNodes) {
       selectAll(item, this.indices);
     }
-    app.canvas.paint();
+    state.notifyListeners();
   }
 }
 
-function selectAll(element: Element, selection: Element[]) {
+function selectAll(element: GraphNode, selection: GraphNode[]) {
   if (selection.includes(element)) {
     element.setAttribute("selected", "");
   } else {

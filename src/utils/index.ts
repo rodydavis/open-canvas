@@ -5,4 +5,5 @@ export * from './grid'
 export * from './line'
 export * from './matrix'
 export * from './size'
+export * from './style'
 // @endindex

@@ -1,15 +1,16 @@
-import { CanvasApp } from "../components";
+import { CanvasAppState } from "../components/canvas-context";
 import { BaseCommand } from "./base";
 
 export class OnPointerUp extends BaseCommand {
   constructor(readonly event: PointerEvent) {
     super("on-pointer-up");
   }
-  execute(app: CanvasApp): void {
+  execute(state: CanvasAppState): void {
     const e = this.event;
     e.preventDefault();
 
-    app.canvas.canvas.releasePointerCapture(e.pointerId);
-    app.canvas.pointers.delete(e.pointerId);
+    state.canvas.releasePointerCapture(e.pointerId);
+    state.pointers.delete(e.pointerId);
+    state.notifyListeners();
   }
 }

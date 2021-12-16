@@ -1,6 +1,7 @@
 import { html, css, LitElement } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import { AddNode } from "../commands";
+import { useContext } from "./canvas-context";
 
 @customElement("canvas-toolbar")
 export class CanvasToolbar extends LitElement {
@@ -28,6 +29,7 @@ export class CanvasToolbar extends LitElement {
   `;
 
   @property({ type: String }) label = document.title;
+  @state() context = useContext(this);
 
   render() {
     return html`<header>
@@ -36,6 +38,10 @@ export class CanvasToolbar extends LitElement {
         +
       </button>
     </header>`;
+  }
+
+  firstUpdated() {
+    this.context = useContext(this);
   }
 }
 

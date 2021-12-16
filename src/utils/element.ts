@@ -1,13 +1,11 @@
-export function getSizeFromElement(elem: Element) {
-  const xAttr = elem.getAttribute("x");
-  const yAttr = elem.getAttribute("y");
-  const widthAttr = elem.getAttribute("width");
-  const heightAttr = elem.getAttribute("height");
+import { GraphNode } from "../graph";
+
+export function getSizeFromElement(elem: GraphNode) {
   return {
-    x: xAttr ? pxToNumber(xAttr) : 0,
-    y: yAttr ? pxToNumber(yAttr) : 0,
-    width: widthAttr ? pxToNumber(widthAttr) : 0,
-    height: heightAttr ? pxToNumber(heightAttr) : 0,
+    x: elem.x,
+    y: elem.y,
+    width: elem.width,
+    height: elem.height,
   };
 }
 

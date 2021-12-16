@@ -1,4 +1,4 @@
-import { CanvasApp } from "../components/canvas-app";
+import { CanvasAppState } from "../components/canvas-context";
 import { createMatrix, matrixInfo } from "../utils/matrix";
 import { BaseCommand } from "./base";
 
@@ -7,10 +7,11 @@ export class ZoomCanvas extends BaseCommand {
     super("zoom-canvas");
   }
 
-  execute(app: CanvasApp): void {
-    const { scale, offset, rotation } = matrixInfo(app.canvas.context);
+  execute(state: CanvasAppState): void {
+    const { scale, offset, rotation } = matrixInfo(state.matrix);
     let localScale = scale;
     localScale += this.delta;
-    app.canvas.context = createMatrix(offset, localScale, rotation);
+    state.matrix = createMatrix(offset, localScale, rotation);
+    state.notifyListeners();
   }
 }

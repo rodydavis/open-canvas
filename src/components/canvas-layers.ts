@@ -1,7 +1,8 @@
 import { html, css, LitElement } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, state } from "lit/decorators.js";
 import { UpdateSelection } from "../commands";
-import { getNodes } from "../nodes/base";
+import { GraphNode } from "../graph";
+import { useContext } from "./canvas-context";
 
 @customElement("canvas-layers")
 export class CanvasLayers extends LitElement {
@@ -22,19 +23,19 @@ export class CanvasLayers extends LitElement {
     }
   `;
 
-  @property({ type: Array }) items: Element[] = [];
-  @property({ type: Array }) selection: Element[] = [];
+  @state() context = useContext(this);
 
   render() {
-    const items = getNodes(this.items);
+    const state = this.context.state;
+    const items = state.store.rootNodes;
     return html`<section>
       <ul>
-        ${items.map((e) => this.renderGroup(e.child))}
+        ${items.map((e) => this.renderGroup(e))}
       </ul>
     </section>`;
   }
 
-  renderGroup(element: Element) {
+  renderGroup(element: GraphNode) {
     const children = Array.from(element.children);
     return html`<li
         ?selected=${element.hasAttribute("selected")}
@@ -56,13 +57,16 @@ export class CanvasLayers extends LitElement {
           </ul>`} `;
   }
 
-  getTitle(element: Element) {
-    return element.getAttribute("title") ?? element.tagName.toLowerCase();
+  getTitle(element: GraphNode) {
+    return element.getAttribute("title") ?? element.tag;
   }
 
-  onSelectNodes(indices: Element[]) {
-    this.selection = indices;
+  onSelectNodes(indices: GraphNode[]) {
     new UpdateSelection(indices).dispatch(this);
+  }
+
+  firstUpdated() {
+    this.context = useContext(this);
   }
 }
 

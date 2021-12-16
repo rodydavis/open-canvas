@@ -1,14 +1,14 @@
-import { CanvasApp } from "../components/canvas-app";
+import { CanvasAppState } from "../components/canvas-context";
+import { GraphNode } from "../graph";
 import { BaseCommand } from "./base";
 
 export class UpdateNode extends BaseCommand {
-  constructor(readonly node: Element) {
+  constructor(readonly node: GraphNode) {
     super("update-node");
   }
 
-  execute(app: CanvasApp): void {
-    app.canvas.paint();
-    app.layers.requestUpdate();
-    app.properties.requestUpdate();
+  execute(state: CanvasAppState): void {
+    state.store.updateNode(this.node);
+    state.notifyListeners();
   }
 }

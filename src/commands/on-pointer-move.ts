@@ -1,30 +1,28 @@
-import { CanvasApp } from "../components";
-import { getSizeFromElement, matrixInfo } from "../utils";
+import { matrixInfo } from "../utils";
 import { BaseCommand } from "./base";
-import { UpdateNode } from "./update-node";
+import { UpdateNode } from ".";
+import { CanvasAppState } from "../components/canvas-context";
 
 export class OnPointerMove extends BaseCommand {
   constructor(readonly event: PointerEvent) {
     super("on-pointer-move");
   }
-  execute(app: CanvasApp): void {
+  execute(state: CanvasAppState): void {
     const e = this.event;
     e.preventDefault();
-
-    if (app.canvas.pointers.get(e.pointerId)) {
-      app.canvas.pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
-
-      const { scale } = matrixInfo(app.canvas.context);
+    if (state.pointers.get(e.pointerId)) {
+      state.pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+      const { scale } = matrixInfo(state.matrix);
       const md = { x: e.movementX / scale, y: e.movementY / scale };
-      for (const item of app.canvas.selection) {
-        const rect = getSizeFromElement(item);
+      for (const item of state.selection) {
         // Move node
-        const newX = rect.x + md.x;
-        const newY = rect.y + md.y;
+        const newX = item.x + md.x;
+        const newY = item.y + md.y;
         item.setAttribute("x", newX.toString());
         item.setAttribute("y", newY.toString());
-        new UpdateNode(item).dispatch(app);
+        new UpdateNode(item).execute(state);
       }
     }
+    state.notifyListeners();
   }
 }
